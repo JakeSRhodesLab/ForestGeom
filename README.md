@@ -31,11 +31,12 @@
                       x_i ↦ φ(x_i)
 ```
 
-`forestgeom` provides geometric representations induced by tree ensembles for
-downstream forest-guided learning. Its goal is to make the geometry learned by a
-forest available as reusable sparse features, proximity operators, and
-prediction utilities rather than treating the fitted forest only as a black-box
-predictor.
+`forestgeom` implements the sparse leaf-incidence kernel framework developed in
+“Revisiting Forest Proximities via Sparse Leaf-Incidence Kernels”
+(https://arxiv.org/abs/2601.02735). The package treats a fitted tree ensemble as
+a reusable geometric object: samples are encoded by the leaves they reach, and
+forest proximities are represented through sparse linear maps rather than dense
+pairwise matrices.
 
 The current core API is `forestgeom.LeafEncoder`, which fits a supported
 ensemble and encodes samples by the leaves they reach. This yields sparse
@@ -50,11 +51,11 @@ representation. Both maps are sparse, with at most one nonzero per tree per
 sample, so downstream methods can work directly with the factors instead of
 materializing dense pairwise proximity matrices.
 
-The package implements forest proximity constructions described in
-“Random Forest- Geometry- and Accuracy-Preserving Proximities”
-(https://ieeexplore.ieee.org/document/10089875) and
-“Revisiting Forest Proximities via Sparse Leaf-Incidence Kernels”
-(https://arxiv.org/abs/2601.02735).
+The implementation includes several proximity constructions within this
+leaf-incidence view, including standard forest kernels, KeRF-style
+leaf-size-normalized kernels, boosted tree-weighted kernels, and GAP/OOB
+proximities from “Random Forest- Geometry- and Accuracy-Preserving Proximities”
+(https://ieeexplore.ieee.org/document/10089875).
 
 The project is intended to evolve beyond leaf-incidence maps into a broader
 framework for forest-induced representation learning. Natural extensions include
