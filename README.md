@@ -26,10 +26,9 @@
       └────────┬────────┘     └────────┬────────┘
                │                       │
                └───────────┬───────────┘
-                           ▼
-              Sparse Forest Maps:      x ↦ φ(x)
-              Explicit Leaf-Collision Kernels: P = Q Wᵀ
-              Vectorizing Tree Geometry
+                           ▼     
+              vectorizing forest geometry
+                      x_i ↦ φ(x_i)
 ```
 
 `forestgeom` provides geometric representations induced by tree ensembles for
@@ -64,56 +63,112 @@ families, and integrations with downstream tasks such as embedding, clustering,
 imputation, uncertainty estimation, and semi-supervised learning. Contributions
 in these directions are welcome.
 
-# Installation (recommended)
-The recommended way for most users to install is directly from the GitHub repository into a virtual environment. This lets users install the package into their own venv without waiting for a PyPI release.
+# Installation
+
+Install the latest released version from PyPI:
 
 ```bash
-# install the latest main branch into the active venv
+pip install forestgeom
+```
+
+Optional dependencies are grouped by feature:
+
+```bash
+# LightGBM and XGBoost adapters
+pip install "forestgeom[boosted]"
+
+# Visualization and embedding tools
+pip install "forestgeom[viz]"
+
+# Experiment dependencies
+pip install "forestgeom[experiments]"
+
+# Test dependencies
+pip install "forestgeom[test]"
+
+# Everything above
+pip install "forestgeom[all]"
+```
+
+To try unreleased features from the GitHub repository, install directly from a
+branch, tag, or commit:
+
+```bash
+# latest main branch
 pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git
 
-# or install a specific branch or tag
+# specific branch or tag
 pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git@main
-```
 
-GitHub install examples
-
-```bash
-# install with an extras group (boosted)
+# GitHub install with extras
 pip install 'git+https://github.com/JakeSRhodesLab/ForestGeom.git@main#egg=forestgeom[boosted]'
-
-# editable VCS install (development) with extras
-pip install -e 'git+https://github.com/JakeSRhodesLab/ForestGeom.git@main#egg=forestgeom[boosted]'
-
-# install from GitHub but skip automatic dependency installation
-pip install --no-deps 'git+https://github.com/JakeSRhodesLab/ForestGeom.git'
-
-# use a constraints file to control versions when installing from GitHub
-pip install 'git+https://github.com/JakeSRhodesLab/ForestGeom.git' -c constraints.txt
 ```
 
-Local / development install
-
-If you're developing on the project or want an editable install (changes in the checkout are immediately importable), use a virtualenv and one of the following:
+For local development from a cloned checkout:
 
 ```bash
-# normal local install
-pip install .
-
-# editable / development install (recommended for contributors)
-pip install -e .
+pip install -e ".[test]"
 ```
 
-# Extras (optional dependencies)
+# Architecture
 
-Install optional feature groups only when needed:
+ForestGeom is organized around one estimator, `LeafEncoder`. The encoder turns a
+tree ensemble into sparse leaf maps and then exposes those maps directly or uses
+them to compute proximities and proximity-weighted predictions.
 
-```bash
-# install boosted extras
-pip install -e '.[boosted]'
+```text
+RandomForest / ExtraTrees / GBT / LightGBM / XGBoost
+                         |
+                         v
+X_train, y_train --> +-------------+
+fit(...)             | LeafEncoder |
+                     +-------------+
+                         |
+                         v
+             fitted adapter + KernelCache
+                         |
+                         v
+        +----------------+----------------+
+        |                                 |
+        v                                 v
++-----------------------+       +-----------------------+
+| Q_train               |       | W_train               |
+| training query map    |       | reference map         |
+|                       |       |                       |
+| training_query_map()  |       | reference_map()       |
+| fit_transform(...)    |       +-----------------------+
++-----------------------+                 |
+        |                                 |
+        |                                 |
+        |               +-----------------+
+        |               |
+        v               v
++-------------------------------+
+| training geometry             |
+| proximity()                   |
+| Q_train @ W_train.T           |
++-------------------------------+
 
-# install viz extras
-pip install -e '.[viz]'
+X_new --> transform(...) --> +---------------------------+
+                             | Q_new                     |
+                             | out-of-sample query map   |
+                             +---------------------------+
+                                        |
+                                        v
+                       +----------------+----------------+
+                       |                                 |
+                       v                                 v
+        +------------------------------+   +------------------------------+
+        | out-of-sample geometry       |   | proximity-weighted outputs   |
+        | proximity_extend(X_new)      |   | proximity_predict(X_new)     |
+        | Q_new @ W_train.T            |   | proximity_predict_proba(...) |
+        +------------------------------+   +------------------------------+
 ```
+
+The adapter layer hides backend-specific details such as leaf indexing,
+bootstrap masks, in-bag counts, and boosted tree weights. The map-building layer
+then uses those normalized quantities to construct `Q` and `W` for the selected
+weighting scheme (`uniform`, `kerf`, `oob`, `gap`, or `boosted`).
 
 # Usage
 
@@ -121,6 +176,18 @@ pip install -e '.[viz]'
 `fit(...)`. It supports scikit-learn Random Forests, ExtraTrees, and Gradient
 Boosting estimators, with optional adapters for LightGBM and XGBoost when those
 packages are installed.
+
+Supported base forest classes include:
+
+- `sklearn.ensemble.RandomForestClassifier`
+- `sklearn.ensemble.RandomForestRegressor`
+- `sklearn.ensemble.ExtraTreesClassifier`
+- `sklearn.ensemble.ExtraTreesRegressor`
+- `sklearn.ensemble.GradientBoostingClassifier`
+- `sklearn.ensemble.GradientBoostingRegressor`
+- `lightgbm.LGBMClassifier` and `lightgbm.LGBMRegressor` with
+  `forestgeom[boosted]`
+- `xgboost.XGBClassifier` and `xgboost.XGBRegressor` with `forestgeom[boosted]`
 
 Supported leaf-weighting schemes include:
 
