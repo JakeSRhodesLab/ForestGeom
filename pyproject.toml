@@ -37,8 +37,8 @@ keywords = [
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [
+    { name = "Adrien Aumon", email = "adrien.aumon@umontreal.ca" },
 	{ name = "Jake Rhodes", email = "jakerhodes8@gmail.com" },
-	{ name = "Adrien Aumon", email = "adrien.aumon@umontreal.ca" },
 ]
 dependencies = [
 	"numpy",
