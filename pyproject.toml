@@ -4,13 +4,35 @@ build-backend = "hatchling.build"
 
 [project]
 name = "forestgeom"
-version = "0.0.1"
+version = "0.1.0"
 description = "Forest kernel package"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+keywords = [
+    "random-forest",
+    "tree-ensembles",
+    "kernel-methods",
+    "proximity",
+    "machine-learning",
+    "sparse-features",
 ]
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
@@ -18,13 +40,16 @@ authors = [
 	{ name = "Jake Rhodes", email = "jakerhodes8@gmail.com" },
 	{ name = "Adrien Aumon", email = "adrien.aumon@umontreal.ca" },
 ]
-urls = { "Homepage" = "https://github.com/JakeSRhodesLab/ForestGeom" }
-
 dependencies = [
 	"numpy",
 	"scipy",
 	"scikit-learn",
 ]
+
+[project.urls]
+Homepage = "https://github.com/JakeSRhodesLab/ForestGeom"
+Repository = "https://github.com/JakeSRhodesLab/ForestGeom"
+Issues = "https://github.com/JakeSRhodesLab/ForestGeom/issues"
 
 [project.optional-dependencies]
 boosted = ["lightgbm", "xgboost"]
@@ -35,3 +60,12 @@ all = ["lightgbm","xgboost","matplotlib","seaborn","umap-learn","pandas","pyarro
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/forestgeom"]
+
+[tool.hatch.build]
+exclude = [
+    "**/__pycache__",
+    "**/*.py[cod]",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+]
