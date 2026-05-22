@@ -5,8 +5,8 @@ Thank you for contributing to `forestgeom`.
 ## Clone the repository
 
 ```bash
-git clone https://github.com/jakerhodes/RF-GAP-Python.git
-cd RF-GAP-Python
+git clone https://github.com/JakeSRhodesLab/ForestGeom.git
+cd ForestGeom
 ```
 
 ## Create a virtual environment

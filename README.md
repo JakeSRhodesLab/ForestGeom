@@ -69,26 +69,26 @@ The recommended way for most users to install is directly from the GitHub reposi
 
 ```bash
 # install the latest main branch into the active venv
-pip install git+https://github.com/jakerhodes/RF-GAP-Python.git
+pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git
 
 # or install a specific branch or tag
-pip install git+https://github.com/jakerhodes/RF-GAP-Python.git@main
+pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git@main
 ```
 
 GitHub install examples
 
 ```bash
 # install with an extras group (boosted)
-pip install 'git+https://github.com/jakerhodes/RF-GAP-Python.git@main#egg=forestgeom[boosted]'
+pip install 'git+https://github.com/JakeSRhodesLab/ForestGeom.git@main#egg=forestgeom[boosted]'
 
 # editable VCS install (development) with extras
-pip install -e 'git+https://github.com/jakerhodes/RF-GAP-Python.git@main#egg=forestgeom[boosted]'
+pip install -e 'git+https://github.com/JakeSRhodesLab/ForestGeom.git@main#egg=forestgeom[boosted]'
 
 # install from GitHub but skip automatic dependency installation
-pip install --no-deps 'git+https://github.com/jakerhodes/RF-GAP-Python.git'
+pip install --no-deps 'git+https://github.com/JakeSRhodesLab/ForestGeom.git'
 
 # use a constraints file to control versions when installing from GitHub
-pip install 'git+https://github.com/jakerhodes/RF-GAP-Python.git' -c constraints.txt
+pip install 'git+https://github.com/JakeSRhodesLab/ForestGeom.git' -c constraints.txt
 ```
 
 Local / development install
