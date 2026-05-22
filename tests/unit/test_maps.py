@@ -5,7 +5,6 @@ from forestgeom import LeafEncoder
 
 from tests.fixtures.constants import (
     ALL_SUPPORTED_CASES,
-    BOOSTED_FORESTS_AND_DATA,
     RF_ET_CLASSIFICATION_CASES,
     RF_ET_CLASSIFICATION_INDUCTIVE_CASES,
 )
@@ -132,4 +131,3 @@ def test_proximity_extend_matches_leaf_factorization(
     W = enc.reference_map(return_dense=False)
 
     assert np.allclose(K_test, (Q_test @ W.T).toarray())
-

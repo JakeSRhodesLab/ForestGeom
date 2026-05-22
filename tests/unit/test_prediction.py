@@ -1,11 +1,8 @@
 import numpy as np
 from sklearn.base import clone
-from sklearn.metrics import accuracy_score, mean_squared_error
 import pytest
 
 from forestgeom import LeafEncoder
-
-from tests.fixtures.constants import RF_ET_WEIGHT_SCHEMES
 
 
 @pytest.mark.parametrize("forest_fixture", ["rf_classifier", "et_classifier"])
