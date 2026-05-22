@@ -298,6 +298,19 @@ The sparse factors can be used directly in proximity methods, manifold learning,
 dimensionality reduction, visualization, imputation, and other proximity-based
 workflows.
 
+# Demos and Experiments
+
+The repository includes notebook demos for common workflows:
+
+- `demos/demo_iris.ipynb`: general-purpose introduction on the Iris dataset.
+- `demos/demo_leaf_pca.ipynb`: supervised manifold learning with leaf PCA.
+- `demos/demo_boosted.ipynb`: boosted-tree examples using the optional boosted
+  adapters.
+
+The `experiments/` directory contains Python scripts and notebooks used
+to reproduce experiments and compile results from “Revisiting Forest Proximities via Sparse
+Leaf-Incidence Kernels”.
+
 # Citation
 
 If you use this software in your research or experiments, please cite the following works:
