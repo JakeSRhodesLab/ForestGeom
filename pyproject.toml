@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "forestgeom"
-version = "0.1.0"
+version = "0.0.2"
 description = "Sparse geometry and proximity tools for tree ensemble models"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10, <3.15"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
