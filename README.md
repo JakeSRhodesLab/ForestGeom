@@ -125,7 +125,7 @@ fit(...)             | LeafEncoder |
                      +-------------+
                          |
                          v
-             fitted adapter + KernelCache
+              fitted adapter + ForestCache
                          |
                          v
         +----------------+----------------+

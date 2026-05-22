@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import sparse
 
-from .cache import KernelCache
+from .cache import ForestCache
 
 
 def to_global_leaves(leaf_mat, leaf_offsets):
@@ -29,7 +29,7 @@ def initialize_cache(
     n_samples,
 ):
     """
-    Initialize the reusable structural part of the kernel cache from
+    Initialize the reusable structural part of the forest cache from
     a leaf matrix.
 
     This includes:
@@ -37,7 +37,7 @@ def initialize_cache(
     - flattened sample-tree incidences
     - flattened tree ids used by tree-specific quantities
     """
-    cache = KernelCache()
+    cache = ForestCache()
     cache.leaf_matrix = leaf_matrix.astype(np.int32, copy=False)
     cache.n_samples = int(n_samples)
     cache.n_trees = int(leaf_matrix.shape[1])
@@ -123,7 +123,7 @@ def build_W_matrix(cache, weight_scheme):
 
     Parameters
     ----------
-    cache : KernelCache
+    cache : ForestCache
     weight_scheme : str
         One of {'original', 'oob', 'gap', 'kerf', 'boosted'}
 
@@ -250,7 +250,7 @@ def build_Q_matrix(
 
     Parameters
     ----------
-    cache : KernelCache
+    cache : ForestCache
     weight_scheme : str
         One of {'original', 'oob', 'gap', 'kerf', 'boosted'}
     leaves : ndarray of shape (N_query, T), optional
@@ -396,7 +396,7 @@ def augment_leaf_maps(cache, weight_scheme, Q, W, adjust_diagonal=False, is_trai
 
     Parameters
     ----------
-    cache : KernelCache
+    cache : ForestCache
     weight_scheme : str
         One of {'original', 'oob', 'gap', 'kerf', 'boosted'}
     Q : scipy.sparse.csr_matrix

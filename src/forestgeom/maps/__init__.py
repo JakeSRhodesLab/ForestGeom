@@ -1,4 +1,4 @@
-from .cache import KernelCache
+from .cache import ForestCache
 from .builders import (
     to_global_leaves,
     initialize_cache,

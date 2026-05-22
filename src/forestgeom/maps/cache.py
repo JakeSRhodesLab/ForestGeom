@@ -6,9 +6,9 @@ from scipy import sparse
 
 
 @dataclass(slots=True)
-class KernelCache:
+class ForestCache:
     """
-    Container for reusable cached quantities used to build kernel matrices.
+    Container for reusable cached quantities used to build forest geometry.
 
     Using slots=True prevents accidental creation of new attributes at runtime.
     Every cache field that may be read or written by builders or the main API
