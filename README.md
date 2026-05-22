@@ -40,16 +40,18 @@ pairwise matrices.
 
 The current core API is `forestgeom.LeafEncoder`, which fits a supported
 ensemble and encodes samples by the leaves they reach. This yields sparse
-query-side and reference-side leaf maps that factorize the forest proximity:
+query-side `x_i -> phi_q(x_i)` and reference-side `x_i -> phi_w(x_i)` weighted
+leaf-incidence maps that factorize the forest proximity:
 
 ```text
 P = Q W^T
 ```
 
-Here, `Q` is the query-side representation and `W` is the reference-side
-representation. Both maps are sparse, with at most one nonzero per tree per
-sample, so downstream methods can work directly with the factors instead of
-materializing dense pairwise proximity matrices.
+Here, `Q` and `W` are the query/reference-side representations of the training
+samples, each with shape `n_train x n_leaves` for the fitted reference set. Both
+maps are sparse, with at most one nonzero per tree per row, so downstream
+methods can work directly with the factors instead of materializing pairwise
+proximity matrices.
 
 The implementation includes several proximity constructions within this
 leaf-incidence view, including standard forest kernels, KeRF-style
