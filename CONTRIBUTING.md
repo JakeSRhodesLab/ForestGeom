@@ -21,7 +21,7 @@ source .venv/bin/activate
 Upgrade packaging tools:
 
 ```bash
-pip install -U pip build
+pip install -U pip build twine
 ```
 
 ## Install the project
@@ -55,6 +55,19 @@ python -m build
 ```
 
 Build artifacts are written to `dist/`.
+
+If you are preparing a release, validate the built artifacts with Twine:
+
+```bash
+python -m twine check dist/*
+```
+
+Uploading to PyPI is also done with Twine, but only by maintainers during a
+release:
+
+```bash
+python -m twine upload dist/*
+```
 
 ## Run tests
 
