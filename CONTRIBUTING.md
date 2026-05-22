@@ -21,7 +21,7 @@ source .venv/bin/activate
 Upgrade packaging tools:
 
 ```bash
-pip install -U pip setuptools wheel
+pip install -U pip build
 ```
 
 ## Install the project
@@ -45,6 +45,17 @@ pip install -e '.[viz]'
 pip install -e '.[test]'
 ```
 
+## Build distributions
+
+The project uses Hatchling as its PEP 517 build backend. To verify that the
+source distribution and wheel build correctly, run:
+
+```bash
+python -m build
+```
+
+Build artifacts are written to `dist/`.
+
 ## Run tests
 
 ```bash
@@ -55,6 +66,8 @@ pytest
 
 - Use a virtual environment for development work.
 - Editable installs (`-e`) are recommended for contributors.
+- Hatchling is configured in `pyproject.toml`; contributors do not need a
+  `setup.py` or `setup.cfg`.
 - Some optional dependencies (e.g. `lightgbm` or `xgboost`) may require
   additional system-level installation steps. Refer to the corresponding
   project documentation if needed.
