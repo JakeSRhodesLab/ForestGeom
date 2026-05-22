@@ -249,6 +249,20 @@ pipe.fit(X_train, y_train)
 pred = pipe.predict(X_test)
 ```
 
+Example for boosted trees. Make sure the optional boosted dependencies are
+installed first with `pip install "forestgeom[boosted]"`:
+
+```python
+from xgboost import XGBClassifier
+
+from forestgeom import LeafEncoder
+
+forest = XGBClassifier(n_estimators=200, random_state=0)
+encoder = LeafEncoder(forest=forest, weight_scheme="boosted")
+Q_train = encoder.fit_transform(X_train, y_train)
+Q_test = encoder.transform(X_test)
+```
+
 For symmetric weighting schemes such as `uniform`, `kerf`, and `boosted`, the
 training query map can usually be treated as the leaf-space feature matrix. For
 asymmetric schemes such as `gap`, the geometry is defined by two maps: the
