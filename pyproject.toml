@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "forestgeom"
 version = "0.1.0"
-description = "Forest kernel package"
+description = "Sparse geometry and proximity tools for tree ensemble models"
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
