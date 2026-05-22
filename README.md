@@ -1,4 +1,10 @@
 # ForestGeom
+
+[![license: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-40cdbc)](LICENSE)
+[![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-40cdbc)](pyproject.toml)
+[![pkg: uv](https://img.shields.io/badge/pkg-uv-40cdbc)](https://docs.astral.sh/uv/)
+[![PyPI: forestgeom](https://img.shields.io/badge/PyPI-forestgeom-40cdbc)](https://pypi.org/project/forestgeom/)
+
 ```text
      x_i ● ─────────────┐     ┌──────────── ● x_j
                         ▼     ▼
@@ -68,29 +74,29 @@ in these directions are welcome.
 
 # Installation
 
-Install the latest released version from PyPI:
+The recommended installer is [`uv`](https://docs.astral.sh/uv/):
 
 ```bash
-pip install forestgeom
+uv add forestgeom
 ```
 
 Optional dependencies are grouped by feature:
 
 ```bash
 # LightGBM and XGBoost adapters
-pip install "forestgeom[boosted]"
+uv add "forestgeom[boosted]"
 
 # Visualization and embedding tools
-pip install "forestgeom[viz]"
+uv add "forestgeom[viz]"
 
 # Experiment dependencies
-pip install "forestgeom[experiments]"
+uv add "forestgeom[experiments]"
 
 # Test dependencies
-pip install "forestgeom[test]"
+uv add "forestgeom[test]"
 
 # Everything above
-pip install "forestgeom[all]"
+uv add "forestgeom[all]"
 ```
 
 To try unreleased features from the GitHub repository, install directly from a
@@ -98,20 +104,36 @@ branch, tag, or commit:
 
 ```bash
 # latest main branch
-pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git
+uv add "forestgeom @ git+https://github.com/JakeSRhodesLab/ForestGeom.git"
 
 # specific branch or tag
-pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git@main
+uv add "forestgeom @ git+https://github.com/JakeSRhodesLab/ForestGeom.git@main"
 
 # GitHub install with extras
-pip install 'git+https://github.com/JakeSRhodesLab/ForestGeom.git@main#egg=forestgeom[boosted]'
+uv add "forestgeom[boosted] @ git+https://github.com/JakeSRhodesLab/ForestGeom.git@main"
 ```
 
 For local development from a cloned checkout:
 
 ```bash
+uv sync --extra test
+```
+
+<details>
+<summary>pip also works</summary>
+
+```bash
+pip install forestgeom
+pip install "forestgeom[boosted]"
+pip install "forestgeom[viz]"
+pip install "forestgeom[experiments]"
+pip install "forestgeom[test]"
+pip install "forestgeom[all]"
+pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git
 pip install -e ".[test]"
 ```
+
+</details>
 
 # Architecture
 
