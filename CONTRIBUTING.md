@@ -41,7 +41,7 @@ immediately importable.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -U pip build twine
+python -m pip install -U pip
 python -m pip install -e ".[test]"
 python -m pip install -e ".[boosted]"
 python -m pip install -e ".[viz]"
@@ -61,17 +61,23 @@ uv build
 
 Build artifacts are written to `dist/`.
 
-If you are preparing a release, validate the built artifacts with Twine:
+If you are preparing a release, clean old artifacts before building:
 
 ```bash
-uv run twine check dist/*
+rm -rf dist/
+uv build
 ```
 
-Uploading to PyPI is also done with Twine, but only by maintainers during a
-release:
+Maintainers can publish to TestPyPI first:
 
 ```bash
-uv run twine upload dist/*
+uv publish --publish-url https://test.pypi.org/legacy/
+```
+
+Then publish the same freshly built artifacts to PyPI:
+
+```bash
+uv publish
 ```
 
 ## Run tests
