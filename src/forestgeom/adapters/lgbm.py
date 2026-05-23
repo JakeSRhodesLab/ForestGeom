@@ -86,11 +86,25 @@ class LightGBMAdapter(EnsembleAdapter):
 
     def get_n_nodes_per_tree(self):
         """
-        Return total node counts for each LightGBM tree using the dataframe.
+        Return total node counts for each LightGBM tree using the model dump.
         """
         booster = self._get_booster()
-        df = booster.trees_to_dataframe()
-        return df.groupby("tree_index").size().astype(int).tolist()
+        tree_info = booster.dump_model()["tree_info"]
+
+        def count_nodes(node):
+            return (
+                1
+                + sum(
+                    count_nodes(child)
+                    for child in (node.get("left_child"), node.get("right_child"))
+                    if child is not None
+                )
+            )
+
+        return [
+            count_nodes(tree["tree_structure"])
+            for tree in tree_info
+        ]
 
     def get_tree_weights(self, X_ref):
         """

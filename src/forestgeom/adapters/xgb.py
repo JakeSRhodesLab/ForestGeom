@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 from .base import EnsembleAdapter
 
@@ -50,31 +52,54 @@ class XGBoostAdapter(EnsembleAdapter):
     
         Notes
         -----
-        The values are read from ``booster.trees_to_dataframe()``. For leaf nodes,
-        XGBoost stores the fitted leaf output in the ``Gain`` column.
+        The values are read from the booster JSON dump. XGBoost stores the fitted
+        leaf output under the ``leaf`` key for leaf nodes.
         """
         leaf_matrix = self.get_leaf_matrix(X_ref)
         n_samples, n_trees = leaf_matrix.shape
-        
-        booster = self._get_booster()
-        df = booster.trees_to_dataframe()
-        
-        # Only interested in leaves
-        leaves_df = df[df['Feature'] == 'Leaf']
+        leaf_value_maps = self._get_leaf_value_maps()
         
         outputs = np.zeros((n_samples, n_trees), dtype=np.float32)
 
         for t in range(n_trees):
-            # Map for specific tree: NodeID -> Leaf Value
-            tree_leaves = leaves_df[leaves_df['Tree'] == t]
-            leaf_map = dict(zip(tree_leaves['ID'].str.split('-').str[-1].astype(int), 
-                                tree_leaves['Gain'].astype(np.float32)))
-            
-            # Reconstruct contributions
-            # Note: XGBoost leaf values are already shrunken by the learning rate
-            outputs[:, t] = np.array([leaf_map[idx] for idx in leaf_matrix[:, t]], dtype=np.float32)
+            leaf_map = leaf_value_maps[t]
+            outputs[:, t] = np.array(
+                [leaf_map[int(leaf_idx)] for leaf_idx in leaf_matrix[:, t]],
+                dtype=np.float32,
+            )
             
         return outputs
+
+    def _get_tree_dumps(self):
+        if not hasattr(self, "_tree_dumps_cache"):
+            booster = self._get_booster()
+            self._tree_dumps_cache = [
+                json.loads(tree_json)
+                for tree_json in booster.get_dump(dump_format="json")
+            ]
+        return self._tree_dumps_cache
+
+    def _get_leaf_value_maps(self):
+        if hasattr(self, "_leaf_value_maps_cache"):
+            return self._leaf_value_maps_cache
+
+        maps = []
+
+        def collect_leaves(node, out):
+            if "leaf" in node:
+                out[int(node["nodeid"])] = float(node["leaf"])
+                return
+
+            for child in node.get("children", []):
+                collect_leaves(child, out)
+
+        for tree in self._get_tree_dumps():
+            out = {}
+            collect_leaves(tree, out)
+            maps.append(out)
+
+        self._leaf_value_maps_cache = maps
+        return maps
 
     def get_n_nodes_per_tree(self):
         """
@@ -83,15 +108,13 @@ class XGBoostAdapter(EnsembleAdapter):
         if hasattr(self, "_n_nodes_per_tree_cache"):
             return self._n_nodes_per_tree_cache
 
-        booster = self._get_booster()
-        tree_df = booster.trees_to_dataframe()
+        def count_nodes(node):
+            return 1 + sum(count_nodes(child) for child in node.get("children", []))
 
-        self._n_nodes_per_tree_cache = (
-            tree_df.groupby("Tree")
-            .size()
-            .astype(int)
-            .tolist()
-        )
+        self._n_nodes_per_tree_cache = [
+            count_nodes(tree)
+            for tree in self._get_tree_dumps()
+        ]
         return self._n_nodes_per_tree_cache
 
     def get_tree_weights(self, X_ref):

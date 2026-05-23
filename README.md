@@ -281,7 +281,7 @@ pred = pipe.predict(X_test)
 ```
 
 Example for boosted trees. Make sure the optional boosted dependencies are
-installed first with `pip install "forestgeom[boosted]"`:
+installed first with `uv pip install "forestgeom[boosted]"`:
 
 ```python
 from xgboost import XGBClassifier
