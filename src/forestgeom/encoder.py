@@ -26,38 +26,36 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
     """
     Sparse forest leaf encoder.
 
-    The fitted encoder represents forest proximities in factored form
+    The fitted encoder represents forest proximities in factored form:
 
         P = Q W^T,
 
-    where Q is the query-side leaf map and W is the reference-side leaf map.
-    Both Q and W are highly sparse (at most T nonzeros per row), so the
-    factorization enables efficient storage and computation without
-    materializing the full proximity matrix P.
+    where ``Q`` is the query-side leaf map and ``W`` is the reference-side leaf map.
+    Both maps are sparse, so the encoder can store and manipulate proximities
+    without materializing the full dense matrix ``P``.
 
-    The encoder provides direct access to the leaf maps Q and W for custom downstream tasks
-    (e.g., proximity methods, manifold learning, dimensionality reduction, visualization...),
-    as well as higher-level utilities such as `proximity()` and `proximity_extend()` for explicitly
-    computing the proximity matrix P (dot product in leaf space) in dense or sparse form.
+    Public methods expose the fitted leaf maps, inductive transforms, and
+    proximity-based predictions. Use them when you want leaf-space features
+    directly or when you need explicit train-train / train-test proximity blocks.
 
-    While forming P is more expensive than working with the sparse maps directly,
-    the sparse factorization keeps construction much more scalable than explicit,
-    dense pairwise comparisons.
+    The explicit proximity matrix is still available, but working with the sparse
+    factors is usually the more scalable option.
     """
 
     def __init__(self, forest=None, weight_scheme="uniform"):
         """
-        Initialize the leaf encoder.
+        Create a leaf encoder around a tree ensemble.
 
         Parameters
         ----------
         forest : BaseEstimator, default=None
-            The underlying tree ensemble (e.g., RandomForestRegressor).
-            This model will be cloned and fitted during `fit()`.
+            The tree ensemble to wrap, such as a random forest or boosted tree model.
+            It is cloned and fitted inside :meth:`fit`.
 
         weight_scheme : str, default="uniform"
-            Leaf-weighting scheme used to build the query and reference leaf maps.
-            Supported: {"uniform", "oob", "gap", "kerf", "boosted"}.
+            Leaf-weighting scheme used to build the query and reference maps.
+            Supported values are ``"uniform"``, ``"oob"``, ``"gap"``, ``"kerf"``,
+            and ``"boosted"``.
         """
         self.forest = forest
         self.weight_scheme = weight_scheme
@@ -91,7 +89,7 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
 
     def _fit_forest(self, X, y, **fit_kwargs):
         """
-        Fit only the underlying ensemble.
+        Fit the wrapped forest and cache the training data needed to build maps.
         """
         X = np.asarray(X)
         y = np.asarray(y).ravel()
@@ -120,7 +118,7 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
 
     def _build_cache(self):
         """
-        Build leaf-map metadata and the fitted query map Q and reference map W.
+        Build the leaf-map cache and precompute the fitted ``Q`` and ``W`` matrices.
         """
         self._check_forest_fitted()
 
@@ -176,7 +174,22 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
 
     def set_weight_scheme(self, weight_scheme):
         """
-        Update the active leaf-weighting scheme without refitting the forest.
+        Parameters
+        ----------
+        weight_scheme : str
+            New weighting scheme to activate.
+
+        Returns
+        -------
+        self : LeafEncoder
+            Fitted encoder with the updated weighting scheme.
+
+        Notes
+        -----
+        Switch the active weighting scheme and rebuild cached maps if needed.
+
+        The wrapped forest is not refit. If cache construction fails, the previous
+        scheme and cache are restored.
         """
         self._check_forest_fitted()
     
@@ -199,7 +212,23 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
 
     def fit(self, X, y, **fit_kwargs):
         """
-        Fit the ensemble and build fitted leaf-map metadata.
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training samples used to fit the wrapped forest.
+        y : array-like of shape (n_samples,)
+            Training targets.
+        **fit_kwargs
+            Additional keyword arguments passed to the wrapped forest adapter.
+
+        Returns
+        -------
+        self : LeafEncoder
+            Fitted encoder.
+
+        Notes
+        -----
+        Fit the forest, build the leaf-map cache, and mark the encoder as ready.
         """
         self._fit_forest(X, y, **fit_kwargs)
         self._build_cache()
@@ -212,34 +241,90 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
 
     def fit_transform(self, X, y, return_dense=False, **fit_kwargs):
         """
-        Fit the encoder and return the fitted training query map Q.
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Training samples used to fit the wrapped forest.
+        y : array-like of shape (n_samples,)
+            Training targets.
+        return_dense : bool, default=False
+            Return a dense array instead of a sparse matrix.
+        **fit_kwargs
+            Additional keyword arguments passed to the wrapped forest adapter.
+
+        Returns
+        -------
+        Q : sparse matrix or ndarray of shape (n_samples, n_leaves)
+            Training query-side leaf map.
+
+        Notes
+        -----
+        Fit the encoder and return the training query map ``Q``.
         """
         self.fit(X, y, **fit_kwargs)
         return self.training_query_map(return_dense=return_dense)
 
     def training_query_map(self, return_dense=False):
         """
-        Return the fitted training query-side leaf map Q.
+        Parameters
+        ----------
+        return_dense : bool, default=False
+            Return a dense array instead of a sparse matrix.
 
-        This may differ from transform(X_fit_) for weighting schemes with
-        training-specific behavior (e.g., OOB, GAP).
+        Returns
+        -------
+        Q : sparse matrix or ndarray of shape (n_samples, n_leaves)
+            Fitted training query-side leaf map.
+
+        Notes
+        -----
+        Return the fitted training query-side map ``Q``.
+
+        For schemes with training-specific behavior, this can differ from
+        ``transform(X_fit_)``.
         """
         self._check_fitted()
         return self._format(self.cache_.Q_mat, return_dense=return_dense)
 
     def reference_map(self, return_dense=False):
         """
-        Return the fitted reference-side leaf map W.
+        Parameters
+        ----------
+        return_dense : bool, default=False
+            Return a dense array instead of a sparse matrix.
 
-        For symmetric proximities, this is the same as `training_query_map()`.
-        For asymmetric proximities such as GAP, W may differ from Q.
+        Returns
+        -------
+        W : sparse matrix or ndarray of shape (n_samples, n_leaves)
+            Fitted reference-side leaf map.
+
+        Notes
+        -----
+        Return the fitted reference-side map ``W``.
+
+        For symmetric proximities this matches :meth:`training_query_map`.
+        For asymmetric schemes such as GAP, ``W`` can differ from ``Q``.
         """
         self._check_fitted()
         return self._format(self.cache_.W_mat, return_dense=return_dense)
 
     def transform(self, X, return_dense=False):
         """
-        Return the inductive query-side leaf map Q(X).
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Samples to encode.
+        return_dense : bool, default=False
+            Return a dense array instead of a sparse matrix.
+
+        Returns
+        -------
+        Q : sparse matrix or ndarray of shape (n_samples, n_leaves)
+            Query-side leaf map for ``X``.
+
+        Notes
+        -----
+        Map new samples into query-space leaf features ``Q(X)``.
         """
         self._check_fitted()
 
@@ -256,7 +341,29 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
 
     def proximity(self, force_symmetric=False, adjust_diagonal=False, return_dense=False):
         """
-        Return the fitted train-train forest proximity matrix P = Q W^T.
+        Parameters
+        ----------
+        force_symmetric : bool, default=False
+            Symmetrize asymmetric proximity blocks such as GAP using block
+            symmetrization. This is useful for downstream proximity-based
+            applications, but it discards the asymmetric kernel factorization.
+        adjust_diagonal : bool, default=False
+            Apply weighting-scheme-specific diagonal corrections. For example,
+            ``oob`` is a separable proxy for the true Breiman OOB proximity and
+            inflates diagonal entries, so the diagonal is forced to ``1``. For
+            GAP, the diagonal is zero by definition, so the extended
+            self-similar GAP convention is used.
+        return_dense : bool, default=False
+            Return a dense array instead of a sparse matrix.
+
+        Returns
+        -------
+        P : sparse matrix or ndarray of shape (n_samples, n_samples)
+            Fitted train-train proximity matrix.
+
+        Notes
+        -----
+        Return the fitted train-train proximity matrix ``P = Q W^T``.
         """
         self._check_fitted()
 
@@ -281,9 +388,23 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
 
     def proximity_extend(self, X, return_dense=False):
         """
-        Extend the fitted forest proximity to new samples.
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            New samples to compare against the fitted reference set.
+        return_dense : bool, default=False
+            Return a dense array instead of a sparse matrix.
 
-        Returns the out-of-sample proximity block
+        Returns
+        -------
+        P_new : sparse matrix or ndarray of shape (n_samples, n_train)
+            Train-test proximity block.
+
+        Notes
+        -----
+        Return the train-test proximity block for new samples.
+
+        This computes the out-of-sample block
 
             P_new = Q(X) W_train^T,
 
@@ -298,10 +419,22 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
     
     def proximity_predict(self, X):
         """
-        Predict by applying fitted forest proximity weights to training labels.
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Samples to predict.
 
-        The prediction type is inferred from the fitted base forest so the same
-        encoder class can serve both classifier and regressor ensembles.
+        Returns
+        -------
+        y_pred : ndarray
+            Predicted targets or classes, depending on the wrapped forest type.
+
+        Notes
+        -----
+        Predict by weighting training labels in leaf space.
+
+        The prediction mode is inferred from the fitted forest, so the same
+        encoder works for classifier and regressor ensembles.
         """
         self._check_fitted()
     
@@ -317,9 +450,21 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
     
     def proximity_predict_proba(self, X):
         """
-        Return class probabilities for classifier forests.
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Samples for which to compute class probabilities.
 
-        This is only available when the fitted forest is a classifier.
+        Returns
+        -------
+        proba : ndarray of shape (n_samples, n_classes)
+            Class-probability predictions.
+
+        Notes
+        -----
+        Return class probabilities for fitted classifier forests.
+
+        Raises ``AttributeError`` when the fitted forest is not a classifier.
         """
         self._check_fitted()
     
@@ -344,7 +489,14 @@ class LeafEncoder(TransformerMixin, BaseEstimator):
     @property
     def diagnostics(self):
         """
-        Lazy diagnostics accessor for fitted forest-proximity diagnostics.
+        Returns
+        -------
+        PredictionDiagnostics
+            Lazily constructed diagnostics object for the fitted encoder.
+
+        Notes
+        -----
+        Lazily construct diagnostics for the fitted encoder.
         """
         if not hasattr(self, "_diagnostics"):
             self._diagnostics = PredictionDiagnostics(self)
