@@ -247,14 +247,26 @@ the query-side leaf representation easy to use in downstream estimators and
 pipelines that consume sparse feature matrices.
 
 ```python
+from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 
 from forestgeom import LeafEncoder
 
+X, y = load_iris(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.25,
+    stratify=y,
+    random_state=0,
+)
+
 forest = RandomForestClassifier(
-    n_estimators=500,
+    n_estimators=200,
     bootstrap=True,
     random_state=0,
     n_jobs=-1,
@@ -270,6 +282,7 @@ Q_test = encoder.transform(X_test)
 clf = LogisticRegression(max_iter=1000)
 clf.fit(Q_train, y_train)
 pred = clf.predict(Q_test)
+print(f"leaf-logistic accuracy: {accuracy_score(y_test, pred):.3f}")
 
 # The encoder can also be placed in a pipeline when only the query map is needed.
 pipe = make_pipeline(
@@ -278,6 +291,7 @@ pipe = make_pipeline(
 )
 pipe.fit(X_train, y_train)
 pred = pipe.predict(X_test)
+print(f"pipeline accuracy: {accuracy_score(y_test, pred):.3f}")
 ```
 
 Example for boosted trees. Make sure the optional boosted dependencies are
