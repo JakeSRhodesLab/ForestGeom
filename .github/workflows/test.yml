@@ -1,0 +1,111 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+
+      - name: Run tests in the locked environment
+        run: uv run pytest
+
+  tox:
+    name: ${{ matrix.os }} / ${{ matrix.tox-env }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Lower-bound discovery: oldest supported Python with oldest
+          # candidate dependency stack.
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-lowest-core
+
+          # Latest dependency stack across supported Python versions.
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-latest
+          - os: ubuntu-latest
+            python: "3.11"
+            tox-env: py311-latest
+          - os: ubuntu-latest
+            python: "3.12"
+            tox-env: py312-latest
+          - os: ubuntu-latest
+            python: "3.13"
+            tox-env: py313-latest
+          - os: ubuntu-latest
+            python: "3.14"
+            tox-env: py314-latest
+
+          # Cross-machine smoke coverage. Full dependency sweeps stay on Linux
+          # to keep CI time reasonable.
+          - os: macos-latest
+            python: "3.12"
+            tox-env: py312-latest
+          - os: windows-latest
+            python: "3.12"
+            tox-env: py312-latest
+
+          # scikit-learn compatibility sweep. sklearn is the highest-risk core
+          # dependency because forest adapters use sklearn forest internals.
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-sklearn-1.3
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-sklearn-1.4
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-sklearn-1.5
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-sklearn-1.6
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-sklearn-1.7
+
+          # Optional boosted adapters.
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-lowest-boosted
+          - os: ubuntu-latest
+            python: "3.10"
+            tox-env: py310-latest-boosted
+          - os: ubuntu-latest
+            python: "3.11"
+            tox-env: py311-latest-boosted
+          - os: ubuntu-latest
+            python: "3.12"
+            tox-env: py312-latest-boosted
+          - os: ubuntu-latest
+            python: "3.13"
+            tox-env: py313-latest-boosted
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Run tox scenario
+        run: uvx tox -e ${{ matrix.tox-env }}
