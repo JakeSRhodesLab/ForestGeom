@@ -74,29 +74,30 @@ in these directions are welcome.
 
 # Installation
 
-The recommended installer is [`uv`](https://docs.astral.sh/uv/):
+The recommended installer is [`uv`](https://docs.astral.sh/uv/). To install
+into the active environment:
 
 ```bash
-uv add forestgeom
+uv pip install forestgeom
 ```
 
 Optional dependencies are grouped by feature:
 
 ```bash
 # LightGBM and XGBoost adapters
-uv add "forestgeom[boosted]"
+uv pip install "forestgeom[boosted]"
 
 # Visualization and embedding tools
-uv add "forestgeom[viz]"
+uv pip install "forestgeom[viz]"
 
 # Experiment dependencies
-uv add "forestgeom[experiments]"
+uv pip install "forestgeom[experiments]"
 
 # Test dependencies
-uv add "forestgeom[test]"
+uv pip install "forestgeom[test]"
 
 # Everything above
-uv add "forestgeom[all]"
+uv pip install "forestgeom[all]"
 ```
 
 To try unreleased features from the GitHub repository, install directly from a
@@ -104,13 +105,21 @@ branch, tag, or commit:
 
 ```bash
 # latest main branch
-uv add "forestgeom @ git+https://github.com/JakeSRhodesLab/ForestGeom.git"
+uv pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git
 
 # specific branch or tag
-uv add "forestgeom @ git+https://github.com/JakeSRhodesLab/ForestGeom.git@main"
+uv pip install git+https://github.com/JakeSRhodesLab/ForestGeom.git@main
 
 # GitHub install with extras
-uv add "forestgeom[boosted] @ git+https://github.com/JakeSRhodesLab/ForestGeom.git@main"
+uv pip install 'git+https://github.com/JakeSRhodesLab/ForestGeom.git@main#egg=forestgeom[boosted]'
+```
+
+If you are adding `forestgeom` to an existing uv-managed project, use `uv add`
+instead:
+
+```bash
+uv add forestgeom
+uv add "forestgeom[boosted]"
 ```
 
 For local development from a cloned checkout:
