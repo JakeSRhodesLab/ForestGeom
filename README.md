@@ -358,7 +358,23 @@ Leaf-Incidence Kernels”.
 
 # Citation
 
-If you use this software in your research or experiments, please cite the following works:
+If you use this software in your research or experiments, please cite the
+leaf-incidence kernel framework paper:
+
+```bibtex
+@misc{aumon2026revisitingforestproximitiessparse,
+      title={Revisiting Forest Proximities via Sparse Leaf-Incidence Kernels}, 
+      author={Adrien Aumon and Guy Wolf and Kevin R. Moon and Jake S. Rhodes},
+      year={2026},
+      eprint={2601.02735},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2601.02735}, 
+}
+```
+
+If you specifically use the `gap` weighting scheme, please also cite the GAP
+proximity paper:
 
 ```bibtex
 @ARTICLE{10089875,
@@ -371,16 +387,4 @@ If you use this software in your research or experiments, please cite the follow
   pages={10947-10959},
   keywords={Random forests;Forestry;Geometry;Data visualization;Decision trees;Task analysis;Anomaly detection;Proximities;random forests;supervised learning},
   doi={10.1109/TPAMI.2023.3263774}}
-```
-
-```bibtex
-@misc{aumon2026revisitingforestproximitiessparse,
-      title={Revisiting Forest Proximities via Sparse Leaf-Incidence Kernels}, 
-      author={Adrien Aumon and Guy Wolf and Kevin R. Moon and Jake S. Rhodes},
-      year={2026},
-      eprint={2601.02735},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2601.02735}, 
-}
 ```
