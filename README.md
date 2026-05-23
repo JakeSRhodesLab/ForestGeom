@@ -38,32 +38,35 @@
 ```
 
 `forestgeom` implements the sparse leaf-incidence kernel framework developed in
-“Revisiting Forest Proximities via Sparse Leaf-Incidence Kernels”
-(https://arxiv.org/abs/2601.02735). The package treats a fitted tree ensemble as
-a reusable geometric object: samples are encoded by the leaves they reach, and
-forest proximities are represented through sparse linear maps rather than dense
-pairwise matrices.
+“Revisiting Forest Proximities via Sparse Leaf-Incidence Kernels” [[1]](#ref-1). The
+package treats a fitted tree ensemble as a reusable geometric object: samples
+are encoded by the leaves they reach, and forest proximities are represented
+through sparse linear maps rather than dense pairwise matrices.
 
-The current core API is `forestgeom.LeafEncoder`, which fits a supported
-ensemble and encodes samples by the leaves they reach. This yields sparse
-query-side `x_i -> phi_q(x_i)` and reference-side `x_i -> phi_w(x_i)` weighted
-leaf-incidence maps that factorize the forest proximity:
+Since their original formulation by Leo Breiman in the early 2000s, forest
+proximities have given already-powerful decision forest models a geometric
+perspective. This intuitive notion of semi-supervised relationships between
+points, based on decision-path similarity across trees, has long been treated as
+a fixed procedure whose direct computation is expensive in the number of
+samples. `forestgeom` removes this burden with efficient sparse linear algebra
+through sparse leaf-collision kernels; more importantly, it directly exposes
+sparse forest-leaf-induced maps for matrix-free, forest-guided downstream
+representation learning. See [[1]](#ref-1) for details.
 
-```text
-P = Q W^T
-```
-
-Here, `Q` and `W` are the query/reference-side representations of the training
-samples, each with shape `n_train x n_leaves` for the fitted reference set. Both
-maps are sparse, with at most one nonzero per tree per row, so downstream
-methods can work directly with the factors instead of materializing pairwise
-proximity matrices.
+Forest geometry has since been used in a wide range of applications that need a
+graded, context-aware notion of similarity beyond class-conditional Euclidean
+distances or black-box deep representation models. This makes it especially
+useful for modality-agnostic pipelines, tabular data, and sparse, noisy,
+high-dimensional settings such as single-cell analysis. Reference [[1]](#ref-1)
+provides a comprehensive literature overview, and this package aims to
+encourage further work in these directions by unifying a collection of forest
+models and geometric perspectives behind a single API.
 
 The implementation includes several proximity constructions within this
 leaf-incidence view, including standard forest kernels, KeRF-style
 leaf-size-normalized kernels, boosted tree-weighted kernels, and GAP/OOB
-proximities from “Random Forest- Geometry- and Accuracy-Preserving Proximities”
-(https://ieeexplore.ieee.org/document/10089875).
+proximities from “Geometry- and Accuracy-Preserving Random Forest
+Proximities” [[2]](#ref-2).
 
 The project is intended to evolve beyond leaf-incidence maps into a broader
 framework for forest-induced representation learning. Natural extensions include
@@ -244,7 +247,9 @@ Leaf maps follow the usual scikit-learn transformer flow: use `fit(...)` when
 you want to keep the fitted encoder, `fit_transform(...)` when you want the
 training query map immediately, and `transform(...)` for new samples. This makes
 the query-side leaf representation easy to use in downstream estimators and
-pipelines that consume sparse feature matrices.
+pipelines that consume sparse feature matrices. For a fitted reference set with
+`n_train` samples and `n_leaves` forest leaves, the training query and reference
+maps have shape `n_train x n_leaves`; each row has at most one nonzero per tree.
 
 ```python
 from sklearn.datasets import load_iris
@@ -373,7 +378,10 @@ Leaf-Incidence Kernels”.
 # Citation
 
 If you use this software in your research or experiments, please cite the
-leaf-incidence kernel framework paper:
+leaf-incidence kernel framework paper [[1]](#ref-1):
+
+<a id="ref-1"></a>[1] Revisiting Forest Proximities via Sparse Leaf-Incidence
+Kernels.
 
 ```bibtex
 @misc{aumon2026revisitingforestproximitiessparse,
@@ -388,7 +396,10 @@ leaf-incidence kernel framework paper:
 ```
 
 If you specifically use the `gap` weighting scheme, please also cite the GAP
-proximity paper:
+proximity paper [[2]](#ref-2):
+
+<a id="ref-2"></a>[2] Geometry- and Accuracy-Preserving Random Forest
+Proximities.
 
 ```bibtex
 @ARTICLE{10089875,
