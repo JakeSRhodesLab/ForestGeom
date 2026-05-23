@@ -68,17 +68,42 @@ rm -rf dist/
 uv build
 ```
 
-Maintainers can publish to TestPyPI first:
+## Release publishing
+
+Releases are tag-driven. The GitHub deploy workflow in
+`.github/workflows/deploy.yml` runs only when a tag is pushed, and it uses the
+tag name to decide whether to publish to TestPyPI or PyPI.
+
+Release tag conventions:
+
+- `test-v<version>` publishes to TestPyPI and creates a GitHub prerelease.
+- `v<version>` publishes to PyPI and creates a normal GitHub release.
+
+The workflow checks that the pushed tag matches `project.version` in
+`pyproject.toml` before publishing.
+
+GitHub environment protection is enabled for both `testpypi` and `pypi`, so
+selected approved maintainers must review the deploy before publication.
+
+Recommended release steps:
+
+1. Bump `project.version` in `pyproject.toml`.
+2. Build and test locally.
+3. Create the release tag that matches the version:
 
 ```bash
-uv publish --publish-url https://test.pypi.org/legacy/
+git tag -a test-v0.0.4 -m "Release v0.0.4 to TestPyPI"
+git push origin test-v0.0.4
+
+# or, for the final PyPI release
+git tag -a v0.0.4 -m "Release v0.0.4"
+git push origin v0.0.4
 ```
 
-Then publish the same freshly built artifacts to PyPI:
+4. Approve the deploy in GitHub if your environment requires review.
 
-```bash
-uv publish
-```
+The workflow will then build the package, publish to the correct index, and
+attach the release artifacts to GitHub.
 
 ## Run tests
 
