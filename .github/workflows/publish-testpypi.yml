@@ -1,0 +1,29 @@
+name: Publish to TestPyPI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    name: Build and publish package
+    runs-on: ubuntu-latest
+
+    environment:
+      name: testpypi
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to TestPyPI
+        run: uv publish --publish-url https://test.pypi.org/legacy/
