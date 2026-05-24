@@ -91,7 +91,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
         - "gap"
 
-    Pairwise-normalized proximities
+    Pairwise-normalized leaf-collision proximities
     -------------------------------
     Some schemes are not bilinear and therefore do not expose query/reference
     maps.
