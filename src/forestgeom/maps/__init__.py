@@ -12,5 +12,7 @@ from .builders import (
 )
 from .sparse_utils import (
     block_symmetrize,
+    normalize_oob_training_proximity,
+    normalize_oob_oos_proximity,
     format_output_matrix
 )

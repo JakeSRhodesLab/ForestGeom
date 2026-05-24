@@ -125,7 +125,7 @@ def build_W_matrix(cache, weight_scheme):
     ----------
     cache : ForestCache
     weight_scheme : str
-        One of {'original', 'oob', 'gap', 'kerf', 'boosted'}
+        One of {'uniform', 'oob', 'gap', 'kerf', 'boosted'}
 
     Returns
     -------
@@ -181,13 +181,11 @@ def build_W_matrix(cache, weight_scheme):
         weights = (1.0 / np.sqrt(T)) * cache.inv_sqrt_leaf_mass[flat_cols]
 
     # ---------------------------------------------------------
-    # OOB PROXIMITY (separable approximation)
+    # OOB PROXIMITY
     #
     # Reference-side weighting:
-    #   Keep only the trees where the reference sample j is OOB.
-    #
-    # Let M_j = number of OOB trees for sample j.
-    # Then W carries sqrt(T) / M_j on the retained sample-tree incidences.
+    #   Keep only the trees where the reference sample j is OOB, with binary
+    #   leaf-incidence weights.
     # ---------------------------------------------------------
     elif weight_scheme == "oob":
         if cache.oob_mask is None:
@@ -198,12 +196,7 @@ def build_W_matrix(cache, weight_scheme):
         flat_rows = flat_rows[mask]
         flat_cols = flat_cols[mask]
 
-        # M_j = number of OOB trees for sample j
-        M = cache.oob_mask.sum(axis=1).astype(np.float32)
-        M[M == 0] = 1.0  # safety
-
-        # Reference-side weights: sqrt(T) / M_j
-        weights = (np.sqrt(T) / M[flat_rows]).astype(np.float32)
+        weights = np.ones(flat_rows.shape[0], dtype=np.float32)
 
     # ---------------------------------------------------------
     # GAP PROXIMITY
@@ -252,7 +245,7 @@ def build_Q_matrix(
     ----------
     cache : ForestCache
     weight_scheme : str
-        One of {'original', 'oob', 'gap', 'kerf', 'boosted'}
+        One of {'uniform', 'oob', 'gap', 'kerf', 'boosted'}
     leaves : ndarray of shape (N_query, T), optional
         Query leaf matrix. If None, uses cache.leaf_matrix.
     is_training : bool, default=True
@@ -313,15 +306,15 @@ def build_Q_matrix(
         vals = (1.0 / np.sqrt(T)) * cache.inv_sqrt_leaf_mass[flat_cols]
 
     # ---------------------------------------------------------
-    # OOB PROXIMITY (separable approximation)
+    # OOB PROXIMITY
     #
     # If is_training=True:
-    #   Restrict to the OOB trees for each query sample i.
-    #   Let |S_i| be the number of such trees.
-    #   Then Q carries sqrt(T) / |S_i|.
+    #   Restrict to the OOB trees for each query sample i, with binary
+    #   leaf-incidence weights.
     #
     # If is_training=False:
-    #   By convention, new points are treated as OOB for all trees, so |S_i| = T.
+    #   New points are treated as OOB for all trees, so this is ordinary binary
+    #   leaf incidence over all trees.
     # ---------------------------------------------------------
     elif weight_scheme == "oob":
         if is_training:
@@ -333,16 +326,10 @@ def build_Q_matrix(
             flat_rows = flat_rows[mask]
             flat_cols = flat_cols[mask]
 
-            # |S_i| = number of OOB trees for sample i
-            S_i_counts = cache.oob_mask.sum(axis=1).astype(np.float32)
-            S_i_counts[S_i_counts == 0] = 1.0
-
-            # Query-side weights: sqrt(T) / |S_i|
-            vals = (np.sqrt(T) / S_i_counts[flat_rows]).astype(np.float32)
+            vals = np.ones(flat_rows.shape[0], dtype=np.float32)
 
         else:
-            # For new data, all trees are considered OOB by convention (size T).
-            vals = np.full(N * T, np.sqrt(T) / T, dtype=np.float32)
+            vals = np.ones(N * T, dtype=np.float32)
 
     # ---------------------------------------------------------
     # GAP PROXIMITY
@@ -390,15 +377,15 @@ def augment_leaf_maps(cache, weight_scheme, Q, W, adjust_diagonal=False, is_trai
     Optionally augment raw query/reference maps with private diagonal
     correction coordinates for exact kernel construction.
 
-    This helper is shared by OOB and GAP. It assumes that build_Q_matrix()
-    and build_W_matrix() return only the raw leaf maps, and appends private
+    This helper applies to GAP. It assumes that build_Q_matrix() and
+    build_W_matrix() return only the raw leaf maps, and appends private
     diagonal-correction coordinates only when requested.
 
     Parameters
     ----------
     cache : ForestCache
     weight_scheme : str
-        One of {'original', 'oob', 'gap', 'kerf', 'boosted'}
+        One of {'uniform', 'oob', 'gap', 'kerf', 'boosted'}
     Q : scipy.sparse.csr_matrix
         Raw query-side map.
     W : scipy.sparse.csr_matrix
@@ -416,7 +403,7 @@ def augment_leaf_maps(cache, weight_scheme, Q, W, adjust_diagonal=False, is_trai
     if not adjust_diagonal:
         return Q, W
 
-    if weight_scheme not in {"oob", "gap"}:
+    if weight_scheme != "gap":
         return Q, W
 
     n_ref = cache.n_samples
@@ -444,27 +431,13 @@ def augment_leaf_maps(cache, weight_scheme, Q, W, adjust_diagonal=False, is_trai
     # ---------------------------------------------------------
     # Reference-side augmentation
     # ---------------------------------------------------------
-    if weight_scheme == "oob":
-        if cache.oob_mask is None:
-            raise ValueError("cache.oob_mask is required for weight_scheme='oob'.")
+    if cache.inbag_counts is None:
+        raise ValueError("cache.inbag_counts is required for weight_scheme='gap'.")
 
-        T = cache.n_trees
-        M = cache.oob_mask.sum(axis=1).astype(np.float32)
-        M[M == 0] = 1.0
-        raw_diag = (T / M).astype(np.float32)
-        diag_vals_w = (1.0 - raw_diag).astype(np.float32)
-
-    elif weight_scheme == "gap":
-        if cache.inbag_counts is None:
-            raise ValueError("cache.inbag_counts is required for weight_scheme='gap'.")
-
-        row_sums = np.asarray(W.sum(axis=1)).ravel().astype(np.float32)
-        inbag_counts_per_row = (cache.inbag_counts > 0).sum(axis=1).astype(np.float32)
-        inbag_counts_per_row[inbag_counts_per_row == 0] = 1.0
-        diag_vals_w = (row_sums / inbag_counts_per_row).astype(np.float32)
-
-    else:
-        diag_vals_w = None
+    row_sums = np.asarray(W.sum(axis=1)).ravel().astype(np.float32)
+    inbag_counts_per_row = (cache.inbag_counts > 0).sum(axis=1).astype(np.float32)
+    inbag_counts_per_row[inbag_counts_per_row == 0] = 1.0
+    diag_vals_w = (row_sums / inbag_counts_per_row).astype(np.float32)
 
     diag_rows = np.arange(n_ref, dtype=np.int64)
     diag_cols = np.arange(n_ref, dtype=np.int64)

@@ -1,3 +1,3 @@
-from .encoder import LeafEncoder
+from .proximity import ForestProximity
 
-__all__ = ["LeafEncoder"]
+__all__ = ["ForestProximity"]
