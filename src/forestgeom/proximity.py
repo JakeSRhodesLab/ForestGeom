@@ -48,8 +48,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
     downstream algorithms that can operate directly on the query/reference maps
     without explicitly constructing proximity matrices.
 
-    Symmetric proximities
-    --------------------
+    SYMMETRIC PROXIMITIES
     For symmetric schemes, the same representation is used on both sides:
 
         P = Q Q^T.
@@ -68,8 +67,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         - "kerf"
         - "boosted"
 
-    Asymmetric proximities
-    ----------------------
+    ASYMMETRIC PROXIMITIES
     Some schemes admit a separable but asymmetric representation:
 
         P = Q W^T,
@@ -91,8 +89,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
         - "gap"
 
-    Pairwise-normalized leaf-collision proximities
-    -------------------------------
+    PAIRWISE-NORMALIZED LEAF-COLLISION PROXIMITIES
     Some schemes are not bilinear and therefore do not expose query/reference
     maps.
 
