@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -26,7 +27,6 @@ if str(PROJECT_ROOT) not in sys.path:
 from forestgeom import ForestProximity
 from experiments.runtime_utils import (
     kernel_percent_nnz,
-    load_dataset_pair,
     log_progress,
     predict_classifier_from_proximity,
     resolve_dataset_paths_from_base_names,
@@ -108,7 +108,7 @@ RUN_FULL_KERNEL = True
 DATASET_ABLATION_SETTINGS = [
     {
         "model_type": "rf",
-        "kernel_method": "oob",
+        "kernel_method": "gap",
         "ablation_name": "dataset_ablation",
         "ablation_cfg": {"bootstrap": True},
     }
@@ -247,22 +247,65 @@ def make_train_size_grid(
     return sizes, min_pow, k_max
 
 
-def sample_train_subset_size(
-    X: np.ndarray,
-    y: np.ndarray,
-    train_size: int,
-    seed: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    if train_size >= len(y):
-        return X, y
+def parquet_num_rows(path: Path) -> int:
+    return pq.ParquetFile(path).metadata.num_rows
 
-    splitter = StratifiedShuffleSplit(
-        n_splits=1,
-        train_size=train_size,
-        random_state=seed,
-    )
-    idx, _ = next(splitter.split(X, y))
-    return X[idx], y[idx]
+
+def parquet_column_name(path: Path, col_idx: int) -> str:
+    schema = pq.ParquetFile(path).schema_arrow
+    return schema.names[col_idx]
+
+
+def count_effective_rows(path: Path, label_col_idx: int, drop_missing_y: bool) -> int:
+    if label_col_idx is None or not drop_missing_y:
+        return parquet_num_rows(path)
+
+    label_col = parquet_column_name(path, label_col_idx)
+    y = pd.read_parquet(path, columns=[label_col]).iloc[:, 0]
+    return int(y.notna().sum())
+
+
+def train_test_sizes_from_metadata(
+    dataset_name: str,
+    dataset_paths: dict[str, Path | None],
+) -> tuple[int, int, dict[str, object]]:
+    meta = {
+        "dataset": dataset_name,
+        "predefined_split": False,
+        "train_path": None,
+        "test_path": None,
+        "single_path": None,
+    }
+
+    if dataset_paths["train"] is not None and dataset_paths["test"] is not None:
+        meta["predefined_split"] = True
+        meta["train_path"] = str(dataset_paths["train"])
+        meta["test_path"] = str(dataset_paths["test"])
+
+        n_train = count_effective_rows(
+            dataset_paths["train"],
+            LABEL_COL_IDX,
+            DROP_MISSING_Y,
+        )
+        n_test = count_effective_rows(
+            dataset_paths["test"],
+            LABEL_COL_IDX,
+            DROP_MISSING_Y,
+        )
+        return n_train, n_test, meta
+
+    if dataset_paths["single"] is not None:
+        meta["single_path"] = str(dataset_paths["single"])
+        n_rows = count_effective_rows(
+            dataset_paths["single"],
+            LABEL_COL_IDX,
+            DROP_MISSING_Y,
+        )
+        n_test = int(np.ceil(0.1 * n_rows))
+        n_train = n_rows - n_test
+        return n_train, n_test, meta
+
+    raise ValueError(f"Dataset '{dataset_name}' has no usable parquet file.")
 
 
 def instantiate_fk(
@@ -395,9 +438,12 @@ from pathlib import Path
 import gc
 
 import numpy as np
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
 
 project_root = Path(sys.argv[1])
 src_root = project_root / "src"
@@ -409,10 +455,10 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from forestgeom import ForestProximity
+from dataset import dataprep
 from experiments.runtime_utils import (
     MemoryMonitor,
     kernel_percent_nnz,
-    load_dataset_pair,
     predict_classifier_from_proximity,
 )
 
@@ -423,16 +469,144 @@ except ImportError:
 
 payload = json.loads(payload_path.read_text(encoding="utf-8"))
 
-def sample_train_subset_size(X, y, train_size, seed):
+def sample_train_subset_positions(y, train_size, seed):
     if train_size >= len(y):
-        return X, y
+        return np.arange(len(y))
     splitter = StratifiedShuffleSplit(
         n_splits=1,
         train_size=train_size,
         random_state=seed,
     )
-    idx, _ = next(splitter.split(X, y))
-    return X[idx], y[idx]
+    idx, _ = next(splitter.split(np.zeros(len(y)), y))
+    return idx
+
+def valid_label_positions(path, label_col_idx, drop_missing_y):
+    label_name = pq.ParquetFile(path).schema_arrow.names[label_col_idx]
+    y = pd.read_parquet(path, columns=[label_name]).iloc[:, 0]
+    if drop_missing_y:
+        positions = np.flatnonzero(y.notna().to_numpy())
+        y = y.iloc[positions]
+        return positions, y.to_numpy()
+    return np.arange(len(y)), y.to_numpy()
+
+def read_selected_rows(path, positions, batch_size=65536):
+    positions = np.asarray(positions, dtype=np.int64)
+    if positions.size == 0:
+        return pq.read_table(path).slice(0, 0).to_pandas()
+
+    order = np.argsort(positions)
+    sorted_positions = positions[order]
+    tables = []
+    offset = 0
+
+    for batch in pq.ParquetFile(path).iter_batches(batch_size=batch_size):
+        batch_len = batch.num_rows
+        start = np.searchsorted(sorted_positions, offset, side="left")
+        end = np.searchsorted(sorted_positions, offset + batch_len, side="left")
+
+        if start != end:
+            local_positions = sorted_positions[start:end] - offset
+            tables.append(batch.take(pa.array(local_positions)))
+
+        offset += batch_len
+
+    if not tables:
+        return pq.read_table(path).slice(0, 0).to_pandas()
+
+    table = pa.Table.from_batches(tables)
+    df = table.to_pandas().reset_index(drop=True)
+
+    if len(order) == len(df):
+        inverse_order = np.argsort(order)
+        df = df.iloc[inverse_order].reset_index(drop=True)
+
+    return df
+
+def load_subset_dataset_pair(paths, seed, train_size, subset_seed, label_col_idx, drop_missing_y, verbose_dataprep):
+    if paths["train"] is not None and paths["test"] is not None:
+        train_positions, y_train_labels = valid_label_positions(
+            paths["train"],
+            label_col_idx,
+            drop_missing_y,
+        )
+        subset_local = sample_train_subset_positions(
+            y_train_labels,
+            train_size=train_size,
+            seed=subset_seed,
+        )
+        train_subset_positions = train_positions[subset_local]
+
+        test_positions, _ = valid_label_positions(
+            paths["test"],
+            label_col_idx,
+            drop_missing_y,
+        )
+
+        df_train = read_selected_rows(paths["train"], train_subset_positions)
+        del y_train_labels, train_positions, subset_local, train_subset_positions
+        gc.collect()
+
+        df_test = read_selected_rows(paths["test"], test_positions)
+        del test_positions
+        gc.collect()
+
+    elif paths["single"] is not None:
+        positions, labels = valid_label_positions(
+            paths["single"],
+            label_col_idx,
+            drop_missing_y,
+        )
+        train_local, test_local = train_test_split(
+            np.arange(len(labels)),
+            test_size=0.1,
+            random_state=seed,
+            stratify=labels,
+        )
+        subset_local = sample_train_subset_positions(
+            labels[train_local],
+            train_size=train_size,
+            seed=subset_seed,
+        )
+        train_positions = positions[train_local[subset_local]]
+        test_positions = positions[test_local]
+
+        selected_positions = np.concatenate([train_positions, test_positions])
+        df_selected = read_selected_rows(paths["single"], selected_positions)
+        df_train = df_selected.iloc[:len(train_positions)].reset_index(drop=True)
+        df_test = df_selected.iloc[len(train_positions):].reset_index(drop=True)
+        del df_selected, labels, positions, train_local, test_local, subset_local
+        del train_positions, test_positions
+        gc.collect()
+
+    else:
+        raise ValueError("No usable parquet file was provided.")
+
+    n_train = len(df_train)
+    n_test = len(df_test)
+    df_full = pd.concat([df_train, df_test], axis=0, ignore_index=True)
+    del df_train, df_test
+    gc.collect()
+
+    X_full, y_full = dataprep(
+        df_full,
+        label_col_idx=label_col_idx,
+        scale=None,
+        global_transform=False,
+        drop_missing_y=drop_missing_y,
+        verbose=verbose_dataprep,
+    )
+    del df_full
+    gc.collect()
+
+    X_full = np.asarray(X_full)
+    y_full = np.asarray(y_full).reshape(-1)
+
+    X_sub = X_full[:n_train]
+    X_test = X_full[n_train:n_train + n_test]
+    y_sub = y_full[:n_train]
+    y_test = y_full[n_train:n_train + n_test]
+
+    return X_sub, X_test, y_sub, y_test
 
 def instantiate_fk(model_type, kernel_method, seed, model_kwargs):
     kwargs = dict(model_kwargs)
@@ -456,25 +630,15 @@ def instantiate_fk(model_type, kernel_method, seed, model_kwargs):
     return ForestProximity(forest=forest, weight_scheme=weight_scheme)
 
 paths = payload["dataset_paths"]
-X_train_pool, X_test, y_train_pool, y_test, meta = load_dataset_pair(
-    dataset_name=payload["dataset_name"],
+X_sub, X_test, y_sub, y_test = load_subset_dataset_pair(
     paths=paths,
     seed=payload["seed"],
+    train_size=payload["train_size"],
+    subset_seed=payload["subset_seed"],
     label_col_idx=payload["label_col_idx"],
-    scale=None,
-    global_transform=False,
     drop_missing_y=payload["drop_missing_y"],
     verbose_dataprep=payload["verbose_dataprep"],
 )
-
-X_sub, y_sub = sample_train_subset_size(
-    X_train_pool,
-    y_train_pool,
-    train_size=payload["train_size"],
-    seed=payload["subset_seed"],
-)
-
-del X_train_pool, y_train_pool
 gc.collect()
 
 fk = instantiate_fk(
@@ -650,34 +814,26 @@ def run_one_ablation_mode(
     for dataset_name, dataset_paths in dataset_groups.items():
         log_progress(f"=== DATASET: {dataset_name} ===", paths["log"])
 
-        # parent-side load only to determine train-size grid
         try:
-            X_train_pool, X_test, y_train_pool, y_test, meta = load_dataset_pair(
-                dataset_name=dataset_name,
-                paths=dataset_paths,
-                seed=SEEDS[0],
-                label_col_idx=LABEL_COL_IDX,
-                scale=None,
-                global_transform=False,
-                drop_missing_y=DROP_MISSING_Y,
-                verbose_dataprep=VERBOSE_DATAPREP,
+            available_train_size, test_size, meta = train_test_sizes_from_metadata(
+                dataset_name,
+                dataset_paths,
             )
         except Exception as e:
             log_progress(
-                f"Failed to load dataset {dataset_name} for grid construction: {e}",
+                f"Failed to inspect dataset {dataset_name} for grid construction: {e}",
                 paths["log"],
             )
             continue
 
-        available_train_size = len(y_train_pool)
         train_sizes, k_min, k_max = make_train_size_grid(
             n_max=available_train_size,
             min_pow=MIN_POW,
         )
 
         log_progress(
-            f"Loaded {dataset_name}: train_pool={X_train_pool.shape}, "
-            f"test={X_test.shape}, predefined_split={meta['predefined_split']}, "
+            f"Inspected {dataset_name}: train_pool_rows={available_train_size}, "
+            f"test_rows={test_size}, predefined_split={meta['predefined_split']}, "
             f"available_train_size={available_train_size}",
             paths["log"],
         )
@@ -764,7 +920,7 @@ def run_one_ablation_mode(
                         "is_power_of_two_size": is_power_of_two(train_size),
                         "log2_requested_train_size": np.log2(train_size),
                         "n_train_subset": train_size,
-                        "n_test": len(y_test),
+                        "n_test": test_size,
                         "forest_fit_time_s": forest_fit_time,
                         "forest_test_predict_time_s": forest_pred_time,
                         "forest_test_acc": forest_acc,
