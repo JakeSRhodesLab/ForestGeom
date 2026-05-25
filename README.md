@@ -11,7 +11,7 @@
      x_i ● ─────────────┐     ┌──────────── ● x_j
                         ▼     ▼
                ┌─────────────────────────┐
-               │     FOREST ENSEMBLE     │
+               │     TREE ENSEMBLES      │
                └───────────┬─────────────┘
                            │
                ┌───────────┴───────────┐
@@ -35,8 +35,7 @@
                │                       │
                └───────────┬───────────┘
                            ▼     
-                    forest geometry
-         unified - fast - sparse - vectorized
+            unified forest-induced geometry
 ```
 
 `forestgeom` implements the sparse leaf-incidence kernel framework developed in
