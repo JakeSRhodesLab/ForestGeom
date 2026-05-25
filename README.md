@@ -173,7 +173,7 @@ from sparse leaf-incidence maps.
                       v                           v
             +----------------------+    +------------------------+
             | separable schemes    |    | corrected schemes      |
-            | P = Q W^T            |    | P = normalize(QQ^T)    |
+            | P = Q W^T            |    | P = normalize(QW^T)    |
             +----------------------+    +------------------------+
                       |                           |
                       v                           |
