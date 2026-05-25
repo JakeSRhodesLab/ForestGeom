@@ -54,10 +54,10 @@ Issues = "https://github.com/JakeSRhodesLab/ForestGeom/issues"
 
 [project.optional-dependencies]
 boosted = ["lightgbm>=4.3", "xgboost>=2.0"]
-viz = ["matplotlib", "seaborn", "umap-learn"]
-experiments = ["pandas", "pyarrow", "matplotlib", "seaborn", "umap-learn", "psutil"]
+viz = ["matplotlib", "seaborn", "umap-learn", "phate"]
+experiments = ["pandas", "pyarrow", "matplotlib", "seaborn", "umap-learn", "phate"]
 test = ["pytest", "pytest-cov"]
-all = ["lightgbm>=4.3","xgboost>=2.0","matplotlib","seaborn","umap-learn","pandas","pyarrow","psutil","pytest","pytest-cov"]
+all = ["lightgbm>=4.3","xgboost>=2.0","matplotlib","seaborn","umap-learn","phate","pandas","pyarrow","pytest","pytest-cov"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/forestgeom"]

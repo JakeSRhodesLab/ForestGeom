@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import gc
 import json
+import resource
 import subprocess
 import sys
 import threading
@@ -16,7 +17,6 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-import psutil
 from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
@@ -39,14 +39,20 @@ class BenchmarkResult:
 class PeakRssSampler:
     def __init__(self, interval_s: float = 0.02):
         self.interval_s = float(interval_s)
-        self._process = psutil.Process()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.start_rss = 0
         self.peak_rss = 0
 
+    @staticmethod
+    def _current_rss_bytes() -> int:
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if sys.platform == "darwin":
+            return int(rss)
+        return int(rss) * 1024
+
     def __enter__(self):
-        self.start_rss = self._process.memory_info().rss
+        self.start_rss = self._current_rss_bytes()
         self.peak_rss = self.start_rss
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
@@ -54,7 +60,7 @@ class PeakRssSampler:
 
     def _run(self):
         while not self._stop.is_set():
-            rss = self._process.memory_info().rss
+            rss = self._current_rss_bytes()
             if rss > self.peak_rss:
                 self.peak_rss = rss
             time.sleep(self.interval_s)
