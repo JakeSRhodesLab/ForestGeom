@@ -269,20 +269,19 @@ custom downstream estimators.
 # Quick Start
 
 ```python
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_breast_cancer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import make_pipeline
-from sklearn.svm import LinearSVC, SVC
+from sklearn.svm import LinearSVC
 
 from forestgeom import ForestProximity
 
-X, y = load_iris(return_X_y=True)
+X, y = load_breast_cancer(return_X_y=True)
 X_train, X_test, y_train, y_test = train_test_split(
   X,
   y,
-  test_size=0.25,
+  test_size=0.2,
   stratify=y,
   random_state=0,
 )
@@ -298,23 +297,18 @@ geometry = ForestProximity(forest=forest, weight_scheme="uniform").fit(X_train, 
 
 # Query/reference maps define the symmetric geometry.
 Q_train = geometry.query_map()
-W_train = geometry.reference_map()
-Q_test = geometry.query_map(X_test)
+W_train = geometry.reference_map()  # This is the same a Q_train for symmetric schemes such as 'uniform', 'kerf' and 'boosted'.
+Q_test = geometry.query_map(X_test)  # Leaf-incidence representations of the test set.
 
-# The proximity matrix can be consumed directly in a pipeline.
-pipe = make_pipeline(
-  ForestProximity(forest=forest, weight_scheme="uniform"),
-  SVC(kernel="precomputed"),
-)
-pipe.fit(X_train, y_train)
-pred = pipe.predict(X_test)
-print(f"proximity-svm accuracy: {accuracy_score(y_test, pred):.3f}")
-
-# Matrix-free variant using the query maps directly as sparse features.
+# Matrix-free forest kernel SVM using the leaf maps directly as sparse features.
 svm = LinearSVC()
 svm.fit(Q_train, y_train)
 pred = svm.predict(Q_test)
-print(f"query-map-svm accuracy: {accuracy_score(y_test, pred):.3f}")
+print(f"leaf-map SVM accuracy: {accuracy_score(y_test, pred):.3f}")
+
+# Comparison with the base forest classifier.
+pred = geometry.forest_.predict(X_test)
+print(f"base-forest accuracy: {accuracy_score(y_test, pred):.3f}")
 
 # To run the boosted example, install optional dependencies first:
 # uv pip install "forestgeom[boosted]"
