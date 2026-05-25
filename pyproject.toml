@@ -28,12 +28,12 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
 keywords = [
-    "random-forest",
-    "tree-ensembles",
+    "decision-forest",
+    "forest-proximity",
+    "leaf-incidence-kernel",
     "kernel-methods",
-    "proximity",
-    "machine-learning",
     "sparse-features",
+    "machine-learning",
 ]
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
