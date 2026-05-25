@@ -1,4 +1,4 @@
-# ForestGeom
+# ForestGeom 🌳
 
 [![license: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-40cdbc)](LICENSE)
 [![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-40cdbc)](pyproject.toml)
