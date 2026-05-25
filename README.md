@@ -33,8 +33,8 @@
                │                       │
                └───────────┬───────────┘
                            ▼     
-              vectorizing forest geometry
-                      x_i ↦ φ(x_i)
+                    forest geometry
+         unified - fast - sparse - vectorized
 ```
 
 `forestgeom` implements the sparse leaf-incidence kernel framework developed in
@@ -70,10 +70,8 @@ Proximities” [[2]](#ref-2).
 
 The project is intended to evolve beyond leaf-incidence maps into a broader
 framework for forest-induced representation learning. Natural extensions include
-path-based encoders, alternative forest geometries, additional base forest
-families, and integrations with downstream tasks such as embedding, clustering,
-imputation, uncertainty estimation, and semi-supervised learning. Contributions
-in these directions are welcome.
+path-based geometry, additional base forest
+families, and GPU-accelerated pipelines.
 
 # Installation
 
@@ -149,70 +147,72 @@ pip install -e ".[test]"
 
 # Architecture
 
-ForestGeom is organized around one estimator, `LeafEncoder`. The encoder turns a
-tree ensemble into sparse leaf maps and then exposes those maps directly or uses
-them to compute proximities and proximity-weighted predictions.
+ForestGeom is organized around one central object, `ForestProximity`. The class
+wraps a fitted tree ensemble and turns it into a reusable geometry object built
+from sparse leaf-incidence maps.
 
 ```text
-RandomForest / ExtraTrees / GBT / LightGBM / XGBoost
-                         |
-                         v
-X_train, y_train --> +-------------+
-fit(...)             | LeafEncoder |
-                     +-------------+
-                         |
-                         v
-              fitted adapter + ForestCache
-                         |
-                         v
-        +----------------+----------------+
-        |                                 |
-        v                                 v
-+-----------------------+       +-----------------------+
-| Q_train               |       | W_train               |
-| training query map    |       | reference map         |
-|                       |       |                       |
-| training_query_map()  |       | reference_map()       |
-| fit_transform(...)    |       +-----------------------+
-+-----------------------+                 |
-        |                                 |
-        |                                 |
-        |               +-----------------+
-        |               |
-        v               v
-+-------------------------------+
-| training geometry             |
-| proximity()                   |
-| Q_train @ W_train.T           |
-+-------------------------------+
-
-X_new --> transform(...) --> +---------------------------+
-                             | Q_new                     |
-                             | out-of-sample query map   |
-                             +---------------------------+
-                                        |
-                                        v
-                       +----------------+----------------+
-                       |                                 |
-                       v                                 v
-        +------------------------------+   +------------------------------+
-        | out-of-sample geometry       |   | proximity-weighted outputs   |
-        | proximity_extend(X_new)      |   | proximity_predict(X_new)     |
-        | Q_new @ W_train.T            |   | proximity_predict_proba(...) |
-        +------------------------------+   +------------------------------+
+        RandomForest / ExtraTrees / GBT / LightGBM / XGBoost
+                                    |
+                                    v
+   X_train, y_train --> +------------------------+
+   fit(...)             |    ForestProximity     |
+                        +------------------------+
+                                    |
+                                    v
+                      fitted adapter + ForestCache
+                                    |
+                                    v
+                  +------------------------------------+
+                  | sparse forest representation       |
+                  | leaf incidence + scheme weights    |
+                  +------------------------------------+
+                                    |
+                      +-------------+-------------+
+                      |                           |
+                      v                           v
+            +----------------------+    +------------------------+
+            | separable schemes    |    | corrected schemes      |
+            | P = Q W^T            |    | P = normalize(QQ^T)    |
+            +----------------------+    +------------------------+
+                      |                           |
+                      v                           |
+            +----------------------+              |
+            | Q: query_map(X=None) |              |
+            | W: reference_map()   |              |
+            +----------------------+              |
+                      |                           |
+                      +-------------+-------------+
+                                    |
+                                    v
+                          +-------------------+
+                          | transform(X_new)  |
+                          | P(X_new, X_train) |
+                          +-------------------+
+                                    |
+                                    v
+                      forest-induced proximity geometry
 ```
 
 The adapter layer hides backend-specific details such as leaf indexing,
 bootstrap masks, in-bag counts, and boosted tree weights. The map-building layer
-then uses those normalized quantities to construct `Q` and `W` for the selected
+then uses those quantities to construct the sparse geometry for the selected
 weighting scheme (`uniform`, `kerf`, `oob`, `gap`, or `boosted`).
+
+The important distinction is:
+
+- Symmetric schemes such as `uniform`, `kerf`, and `boosted` use the same
+  leaf-incidence geometry on both sides, so the resulting proximity is a kernel.
+- Asymmetric schemes such as `gap` expose distinct query and reference maps,
+  which induce a bilinear form `P(i, j) = <Q(i), W(j)>` rather than a kernel.
+- The true Breiman OOB scheme is pairwise-normalized and is computed directly
+  as a sparse proximity matrix; it does not factor into a single reusable `Q`/`W`
+  pair.
 
 # Usage
 
-`LeafEncoder` wraps a tree ensemble estimator and clones/fits it during
-`fit(...)`. It supports scikit-learn Random Forests, ExtraTrees, and Gradient
-Boosting estimators, with optional adapters for LightGBM and XGBoost when those
-packages are installed.
+`ForestProximity` wraps a tree ensemble estimator and clones/fits it during
+`fit(...)`. It supports a unified set of forest backends and weighting schemes:
 
 Supported base forest classes include:
 
@@ -231,8 +231,8 @@ Supported leaf-weighting schemes include:
 - `uniform`: symmetric leaf co-occurrence factorization of the standard forest
   kernel.
 - `kerf`: symmetric leaf-size-normalized factorization of the KeRF kernel.
-- `oob`: separable OOB leaf-incidence factorization that approximates the
-  off-diagonal Breiman OOB affinities.
+- `oob`: pairwise-normalized Breiman OOB proximity computed directly in sparse
+  form.
 - `gap`: asymmetric query/reference factorization that combines OOB-side query
   weights with in-bag reference weights to recover the GAP proximity definition.
 - `boosted`: symmetric tree-weighted leaf kernel for supported boosted
@@ -243,131 +243,92 @@ ExtraTrees estimators support `uniform` and `kerf`; they support `oob` and
 `gap` only when fitted with `bootstrap=True`. Boosted estimators support
 `uniform`, `kerf`, and `boosted`.
 
-Leaf maps follow the usual scikit-learn transformer flow: use `fit(...)` when
-you want to keep the fitted encoder, `fit_transform(...)` when you want the
-training query map immediately, and `transform(...)` for new samples. This makes
-the query-side leaf representation easy to use in downstream estimators and
-pipelines that consume sparse feature matrices. For a fitted reference set with
-`n_train` samples and `n_leaves` forest leaves, the training query and reference
-maps have shape `n_train x n_leaves`; each row has at most one nonzero per tree.
+Use `fit(...)` when you want to train and keep the fitted geometry, and use
+`fit_transform(...)` when you want the fitted train-train proximity matrix right
+away. Use `query_map(...)` and `reference_map(...)` when you need the actual
+leaf-incidence factors `Q` and `W` for matrix-free applications, and use `transform(...)`
+for the proximity block from new samples to the fitted training set.
+
+For schemes that are not symmetric kernels, **`fit_transform(...)` and
+`fit(...).transform(...)` are not necessarily the same**. If you need the
+training geometry, use `fit_transform(...)` directly or call
+`training_proximity(...)` on the fitted estimator.
+
+For symmetric weighting schemes such as `uniform`, `kerf`, and `boosted`, the
+query map is typically the leaf-space feature matrix. For asymmetric schemes
+such as `gap`, keep both `Q` and `W` if you want to work directly with the
+geometry. For `oob`, use `training_proximity(...)` or `transform(...)` directly;
+there is no separate query/reference factorization.
+
+The sparse geometry can be used directly in proximity-based workflows such as
+manifold learning, dimensionality reduction, visualization, imputation, and
+custom downstream estimators.
+
+# Quick Start
 
 ```python
 from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
+from sklearn.svm import LinearSVC, SVC
 
-from forestgeom import LeafEncoder
+from forestgeom import ForestProximity
 
 X, y = load_iris(return_X_y=True)
 X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.25,
-    stratify=y,
-    random_state=0,
+  X,
+  y,
+  test_size=0.25,
+  stratify=y,
+  random_state=0,
 )
 
 forest = RandomForestClassifier(
-    n_estimators=200,
-    bootstrap=True,
-    random_state=0,
-    n_jobs=-1,
+  n_estimators=200,
+  bootstrap=True,
+  random_state=0,
+  n_jobs=-1,
 )
 
-encoder = LeafEncoder(forest=forest, weight_scheme="uniform")
+geometry = ForestProximity(forest=forest, weight_scheme="uniform").fit(X_train, y_train)
 
-# sklearn-style transformer flow.
-Q_train = encoder.fit_transform(X_train, y_train)
-Q_test = encoder.transform(X_test)
+# Query/reference maps define the symmetric geometry.
+Q_train = geometry.query_map()
+W_train = geometry.reference_map()
+Q_test = geometry.query_map(X_test)
 
-# The sparse leaf maps can feed downstream models directly.
-clf = LogisticRegression(max_iter=1000)
-clf.fit(Q_train, y_train)
-pred = clf.predict(Q_test)
-print(f"leaf-logistic accuracy: {accuracy_score(y_test, pred):.3f}")
-
-# The encoder can also be placed in a pipeline when only the query map is needed.
+# The proximity matrix can be consumed directly in a pipeline.
 pipe = make_pipeline(
-    LeafEncoder(forest=forest, weight_scheme="uniform"),
-    LogisticRegression(max_iter=1000),
+  ForestProximity(forest=forest, weight_scheme="uniform"),
+  SVC(kernel="precomputed"),
 )
 pipe.fit(X_train, y_train)
 pred = pipe.predict(X_test)
-print(f"pipeline accuracy: {accuracy_score(y_test, pred):.3f}")
-```
+print(f"proximity-svm accuracy: {accuracy_score(y_test, pred):.3f}")
 
-Example for boosted trees. Make sure the optional boosted dependencies are
-installed first with `uv pip install "forestgeom[boosted]"`:
+# Matrix-free variant using the query maps directly as sparse features.
+svm = LinearSVC()
+svm.fit(Q_train, y_train)
+pred = svm.predict(Q_test)
+print(f"query-map-svm accuracy: {accuracy_score(y_test, pred):.3f}")
 
-```python
+# To run the boosted example, install optional dependencies first:
+# uv pip install "forestgeom[boosted]"
 from xgboost import XGBClassifier
 
-from forestgeom import LeafEncoder
-
 forest = XGBClassifier(n_estimators=200, random_state=0)
-encoder = LeafEncoder(forest=forest, weight_scheme="boosted")
-Q_train = encoder.fit_transform(X_train, y_train)
-Q_test = encoder.transform(X_test)
+boosted_geometry = ForestProximity(forest=forest, weight_scheme="boosted")
+K_train = boosted_geometry.fit_transform(X_train, y_train)
+K_test = boosted_geometry.transform(X_test)
 ```
-
-For symmetric weighting schemes such as `uniform`, `kerf`, and `boosted`, the
-training query map can usually be treated as the leaf-space feature matrix. For
-asymmetric schemes such as `gap`, the geometry is defined by two maps: the
-query-side map `Q` and the reference-side map `W`. In those cases, downstream
-code that needs proximities should keep both maps or use `Q @ W.T` explicitly rather than
-assuming a single symmetric feature representation.
-
-```python
-from sklearn.ensemble import RandomForestClassifier
-from forestgeom import LeafEncoder
-
-forest = RandomForestClassifier(
-    n_estimators=500,
-    bootstrap=True,
-    random_state=0,
-    n_jobs=-1,
-)
-
-encoder = LeafEncoder(forest=forest, weight_scheme="gap").fit(X_train, y_train)
-
-# Sparse leaf maps for custom downstream work.
-Q_train = encoder.training_query_map()
-W_train = encoder.reference_map()
-Q_test = encoder.transform(X_test)
-
-# Explicit proximity matrices. These are sparse by default.
-K_train = encoder.proximity()
-K_test_train = encoder.proximity_extend(X_test)
-
-# Dense output is available when needed.
-K_train_dense = encoder.proximity(return_dense=True)
-```
-
-For proximity-weighted prediction, `LeafEncoder.proximity_predict(X)` and
-`LeafEncoder.proximity_predict_proba(X)` provide matrix-free convenience wrappers that use
-the fitted base forest task type: regression forests return weighted responses,
-while classification forests return weighted class predictions/probabilities.
-They avoid materializing the full proximity matrix `P` by multiplying the sparse
-leaf factors against the training targets or class indicators directly.
-
-For asymmetric weighting schemes such as `gap`, the fitted training query map
-`Q_train` and reference map `W_train` differ. The train-train proximity is still
-computed as `Q_train @ W_train.T`, and `proximity_extend(X)` returns
-`Q(X) @ W_train.T` for out-of-sample data.
-
-The sparse factors can be used directly in proximity methods, manifold learning,
-dimensionality reduction, visualization, imputation, and other proximity-based
-workflows.
 
 # Demos and Experiments
-
 The repository includes notebook demos for common workflows:
 
 - `demos/demo_iris.ipynb`: general-purpose introduction on the Iris dataset.
-- `demos/demo_leaf_pca.ipynb`: supervised manifold learning with leaf PCA.
+- `demos/demo_leaf_pca.ipynb`: matrix-free supervised manifold learning with leaf PCA using the leaf-incidence maps in kernel proximities.
 - `demos/demo_boosted.ipynb`: boosted-tree examples using the optional boosted
   adapters.
 
@@ -391,8 +352,7 @@ Kernels.
       eprint={2601.02735},
       archivePrefix={arXiv},
       primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2601.02735}, 
-}
+      url={https://arxiv.org/abs/2601.02735}}
 ```
 
 If you specifically use the `gap` weighting scheme, please also cite the GAP
