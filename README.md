@@ -70,7 +70,7 @@ Proximities” [[2]](#ref-2).
 
 The project is intended to evolve beyond leaf-incidence maps into a broader
 framework for forest-induced representation learning. Natural extensions include
-path-based geometry, additional base forest
+node/path-based geometry, additional base forest
 families, and GPU-accelerated pipelines.
 
 # Installation
