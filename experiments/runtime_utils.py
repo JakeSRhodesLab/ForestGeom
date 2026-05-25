@@ -346,6 +346,17 @@ def kernel_percent_nnz(K) -> float:
     return 100.0 * np.count_nonzero(K) / total
 
 
+def predict_classifier_from_proximity(P, y_train, classes):
+    y_train = np.asarray(y_train)
+    classes = np.asarray(classes)
+    proba = np.zeros((P.shape[0], classes.shape[0]), dtype=np.float64)
+    for class_index, cls in enumerate(classes):
+        proba[:, class_index] = np.asarray(P[:, y_train == cls].sum(axis=1)).ravel()
+
+    preds = classes[np.argmax(proba, axis=1)]
+    return preds, proba
+
+
 class MemoryMonitor:
     def __init__(self, poll_seconds: float = 0.01):
         self.poll_seconds = poll_seconds

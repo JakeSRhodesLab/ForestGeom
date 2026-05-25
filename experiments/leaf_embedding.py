@@ -27,7 +27,7 @@ if str(SRC_ROOT) not in sys.path:
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from forestgeom import LeafEncoder
+from forestgeom import ForestProximity
 from experiments.runtime_utils import (
     load_dataset_pair_with_raw_labels,
     log_progress,
@@ -44,9 +44,9 @@ DATA_DIR = PROJECT_ROOT / "data"
 DATASET_NAMES = [
     # "celegans",
     # "pbmc",
-    # "sign_mnist",
+    "sign_mnist",
     # "fashion_mnist",
-    "covertype",
+    # "covertype",
 ]
 
 RESULTS_DIR = PROJECT_ROOT / "experiments" / "results"
@@ -168,12 +168,12 @@ def validate_methods_to_run(methods_to_run: list[str]) -> None:
         )
 
 
-def instantiate_fk(seed: int) -> LeafEncoder:
+def instantiate_fk(seed: int) -> ForestProximity:
     kwargs = dict(FOREST_KWARGS)
     kwargs["random_state"] = seed
     if MODEL_TYPE != "rf":
         raise ValueError(f"Unsupported MODEL_TYPE for this script: {MODEL_TYPE!r}")
-    return LeafEncoder(
+    return ForestProximity(
         forest=RandomForestClassifier(**kwargs),
         weight_scheme=KERNEL_METHOD,
     )
@@ -438,7 +438,7 @@ def run_raw_pca(
 
 
 def run_leaf_pca(
-    fk: LeafEncoder,
+    fk: ForestProximity,
     X_train,
     X_test,
     y_train,
@@ -481,7 +481,7 @@ def run_leaf_pca(
 
     def test_pipeline():
         t0 = time.perf_counter()
-        leaf_test = fk.transform(X_test)
+        leaf_test = fk.query_map(X_test)
         query_time = time.perf_counter() - t0
 
         t0 = time.perf_counter()
@@ -605,7 +605,7 @@ def run_raw_pca_umap(
 
 
 def run_leaf_pca_umap(
-    fk: LeafEncoder,
+    fk: ForestProximity,
     X_train,
     X_test,
     y_train,
@@ -666,7 +666,7 @@ def run_leaf_pca_umap(
 
     def test_pipeline():
         t0 = time.perf_counter()
-        leaf_test = fk.transform(X_test)
+        leaf_test = fk.query_map(X_test)
         query_time = time.perf_counter() - t0
 
         t0 = time.perf_counter()
@@ -824,7 +824,7 @@ def run_raw_pca_phate(
 
 
 def run_leaf_pca_phate(
-    fk: LeafEncoder,
+    fk: ForestProximity,
     X_train,
     X_test,
     y_train,
@@ -900,7 +900,7 @@ def run_leaf_pca_phate(
 
     def test_pipeline():
         t0 = time.perf_counter()
-        leaf_test = fk.transform(X_test)
+        leaf_test = fk.query_map(X_test)
         query_time = time.perf_counter() - t0
 
         t0 = time.perf_counter()

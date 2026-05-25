@@ -23,11 +23,12 @@ if str(SRC_ROOT) not in sys.path:
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from forestgeom import LeafEncoder
+from forestgeom import ForestProximity
 from experiments.runtime_utils import (
     kernel_percent_nnz,
     load_dataset_pair,
     log_progress,
+    predict_classifier_from_proximity,
     resolve_dataset_paths_from_base_names,
 )
 
@@ -107,7 +108,7 @@ RUN_FULL_KERNEL = True
 DATASET_ABLATION_SETTINGS = [
     {
         "model_type": "rf",
-        "kernel_method": "gap",
+        "kernel_method": "oob",
         "ablation_name": "dataset_ablation",
         "ablation_cfg": {"bootstrap": True},
     }
@@ -269,7 +270,7 @@ def instantiate_fk(
     kernel_method: str,
     seed: int,
     model_kwargs: dict[str, object],
-) -> LeafEncoder:
+) -> ForestProximity:
     kwargs = dict(model_kwargs)
 
     if model_type in {"rf", "et"}:
@@ -292,11 +293,11 @@ def instantiate_fk(
         raise ValueError(f"Unsupported model_type for this script: {model_type!r}")
 
     weight_scheme = "uniform" if kernel_method == "original" else kernel_method
-    return LeafEncoder(forest=forest, weight_scheme=weight_scheme)
+    return ForestProximity(forest=forest, weight_scheme=weight_scheme)
 
 
 def run_fk_full_pipeline(
-    fk: LeafEncoder,
+    fk: ForestProximity,
     X_sub,
     y_sub,
     X_test,
@@ -316,13 +317,16 @@ def run_fk_full_pipeline(
     fk._build_cache()
     cache_time = time.perf_counter() - t0
 
-    t0 = time.perf_counter()
-    fk.training_query_map()
-    q_time = time.perf_counter() - t0
+    if kernel_method == "oob":
+        q_time = np.nan
+    else:
+        t0 = time.perf_counter()
+        fk.query_map()
+        q_time = time.perf_counter() - t0
 
     if RUN_FULL_KERNEL:
         t0 = time.perf_counter()
-        K_fk = fk.proximity()
+        K_fk = fk.training_proximity(return_dense=False)
         k_time = time.perf_counter() - t0
         k_percent_nnz = kernel_percent_nnz(K_fk)
     else:
@@ -330,7 +334,8 @@ def run_fk_full_pipeline(
         k_percent_nnz = np.nan
 
     t0 = time.perf_counter()
-    y_pred_kp = fk.proximity_predict(X_test)
+    K_test = fk.transform(X_test, return_dense=False)
+    y_pred_kp, _ = predict_classifier_from_proximity(K_test, y_sub, fk.classes_)
     kp_time = time.perf_counter() - t0
     kp_acc = accuracy_score(y_test, y_pred_kp)
 
@@ -403,11 +408,12 @@ if str(src_root) not in sys.path:
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from forestgeom import LeafEncoder
+from forestgeom import ForestProximity
 from experiments.runtime_utils import (
     MemoryMonitor,
     kernel_percent_nnz,
     load_dataset_pair,
+    predict_classifier_from_proximity,
 )
 
 try:
@@ -447,7 +453,7 @@ def instantiate_fk(model_type, kernel_method, seed, model_kwargs):
     else:
         raise ValueError(f"Unsupported model_type for this script: {model_type!r}")
     weight_scheme = "uniform" if kernel_method == "original" else kernel_method
-    return LeafEncoder(forest=forest, weight_scheme=weight_scheme)
+    return ForestProximity(forest=forest, weight_scheme=weight_scheme)
 
 paths = payload["dataset_paths"]
 X_train_pool, X_test, y_train_pool, y_test, meta = load_dataset_pair(
@@ -479,6 +485,7 @@ fk = instantiate_fk(
 )
 
 run_full_kernel = payload["run_full_kernel"]
+kernel_method = payload["kernel_method"]
 
 # -------------------------------------------------
 # Unmeasured: forest fit
@@ -504,12 +511,13 @@ with MemoryMonitor(poll_seconds=0.005) as mm:
     cache_time = time.perf_counter() - t0
 
     t0 = time.perf_counter()
-    fk.training_query_map()
+    if run_full_kernel and kernel_method != "oob":
+        fk.query_map()
     q_time = time.perf_counter() - t0
 
     if run_full_kernel:
         t0 = time.perf_counter()
-        K_fk = fk.proximity()
+        K_fk = fk.training_proximity(return_dense=False)
         k_time = time.perf_counter() - t0
         k_percent_nnz = kernel_percent_nnz(K_fk)
     else:
@@ -519,10 +527,11 @@ with MemoryMonitor(poll_seconds=0.005) as mm:
 kernel_build_peak_mb = mm.peak_delta_mb
 
 # -------------------------------------------------
-# Unmeasured: kernel prediction
+# Unmeasured: proximity-weighted prediction
 # -------------------------------------------------
 t0 = time.perf_counter()
-y_pred_kp = fk.proximity_predict(X_test)
+K_test = fk.transform(X_test, return_dense=False)
+y_pred_kp, _ = predict_classifier_from_proximity(K_test, y_sub, fk.classes_)
 kp_time = time.perf_counter() - t0
 kp_acc = accuracy_score(y_test, y_pred_kp)
 
