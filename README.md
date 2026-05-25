@@ -4,6 +4,8 @@
 [![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-40cdbc)](pyproject.toml)
 [![pkg: uv](https://img.shields.io/badge/pkg-uv-40cdbc)](https://docs.astral.sh/uv/)
 [![PyPI: forestgeom](https://img.shields.io/badge/PyPI-forestgeom-40cdbc)](https://pypi.org/project/forestgeom/)
+[![tests](https://github.com/JakeSRhodesLab/ForestGeom/actions/workflows/test.yml/badge.svg)](https://github.com/JakeSRhodesLab/ForestGeom/actions/workflows/test.yml)
+[![paper: arXiv 2601.02735](https://img.shields.io/badge/paper-arXiv%3A2601.02735-40cdbc)](https://arxiv.org/abs/2601.02735)
 
 ```text
      x_i ● ─────────────┐     ┌──────────── ● x_j
