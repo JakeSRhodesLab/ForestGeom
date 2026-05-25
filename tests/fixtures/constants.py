@@ -28,7 +28,6 @@ BOOSTED_FORESTS_AND_DATA = [
 RF_ET_WEIGHT_SCHEMES = ["uniform", "kerf", "oob", "gap"]
 
 BOOSTED_WEIGHT_SCHEMES = ["uniform", "kerf", "boosted"]
-
 BOOSTED_SUPPORTED_CASES = [
     *[
         (forest_fixture, data_fixture, weight_scheme)
@@ -59,4 +58,8 @@ ALL_SUPPORTED_CASES = [
         for weight_scheme in RF_ET_WEIGHT_SCHEMES
     ],
     *BOOSTED_SUPPORTED_CASES,
+]
+
+ALL_SUPPORTED_FACTORIZABLE_CASES = [
+    case for case in ALL_SUPPORTED_CASES if case[2] != "oob"
 ]

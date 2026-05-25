@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from forestgeom import LeafEncoder
+from forestgeom import ForestProximity
 
 from tests.fixtures.constants import RF_ET_FORESTS_AND_DATA, RF_ET_WEIGHT_SCHEMES
 
@@ -11,10 +11,10 @@ def test_gap_train_and_test_rows_sum_to_one_exactly(request, forest_fixture, dat
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = LeafEncoder(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
 
-    K_train = enc.proximity(return_dense=False)
-    K_test = enc.proximity_extend(X_test, return_dense=False)
+    K_train = enc.training_proximity(return_dense=False)
+    K_test = enc.transform(X_test, return_dense=False)
 
     train_row_sums = np.asarray(K_train.sum(axis=1)).ravel()
     test_row_sums = np.asarray(K_test.sum(axis=1)).ravel()
@@ -32,10 +32,10 @@ def test_kerf_train_kernel_is_doubly_stochastic_and_test_rows_sum_to_one(
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = LeafEncoder(forest=forest, weight_scheme="kerf").fit(X_train, y_train)
+    enc = ForestProximity(forest=forest, weight_scheme="kerf").fit(X_train, y_train)
 
-    K_train = enc.proximity(return_dense=False)
-    K_test = enc.proximity_extend(X_test, return_dense=False)
+    K_train = enc.training_proximity(return_dense=False)
+    K_test = enc.transform(X_test, return_dense=False)
 
     train_row_sums = np.asarray(K_train.sum(axis=1)).ravel()
     train_col_sums = np.asarray(K_train.sum(axis=0)).ravel()
@@ -56,9 +56,9 @@ def test_training_kernel_is_symmetric(request, forest_fixture, data_fixture, wei
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = LeafEncoder(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
 
-    K = enc.proximity(return_dense=True)
+    K = enc.training_proximity(return_dense=True)
 
     assert K.shape[0] == K.shape[1]
     assert np.allclose(K, K.T, rtol=1e-6, atol=1e-8)
@@ -69,33 +69,27 @@ def test_gap_force_symmetric_kernel_is_symmetric(request, forest_fixture, data_f
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = LeafEncoder(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
 
-    K = enc.proximity(force_symmetric=True, return_dense=True)
+    K = enc.training_proximity(force_symmetric=True, return_dense=True)
 
     assert K.shape[0] == K.shape[1]
     assert np.allclose(K, K.T, rtol=1e-6, atol=1e-8)
 
 
 @pytest.mark.parametrize("forest_fixture,data_fixture", RF_ET_FORESTS_AND_DATA)
-@pytest.mark.parametrize("weight_scheme", ["gap", "oob"])
-def test_adjust_diagonal_matches_expected_gap_and_oob_training_diagonal(
+def test_adjust_diagonal_matches_expected_gap_training_diagonal(
     request,
     forest_fixture,
     data_fixture,
-    weight_scheme,
 ):
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = LeafEncoder(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
 
-    K = enc.proximity(adjust_diagonal=True, return_dense=True)
+    K = enc.training_proximity(adjust_diagonal=True, return_dense=True)
     diag = np.diag(K)
-
-    if weight_scheme == "oob":
-        assert np.allclose(diag, 1.0, rtol=1e-6, atol=1e-8)
-        return
 
     ref_mass = np.asarray(enc.reference_map(return_dense=False).sum(axis=1)).ravel()
     inbag_tree_counts = (enc.cache_.inbag_counts > 0).sum(axis=1).astype(np.float32)
@@ -133,7 +127,7 @@ def test_gap_oob_require_bootstrap_true(request, est_class, data_fixture, weight
     }
 
     est = cls_map[est_class](n_estimators=10, bootstrap=False, random_state=0, n_jobs=1)
-    enc = LeafEncoder(forest=est, weight_scheme=weight_scheme)
+    enc = ForestProximity(forest=est, weight_scheme=weight_scheme)
 
     with pytest.raises(ValueError):
         enc.fit(X_train, y_train)

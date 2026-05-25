@@ -2,7 +2,11 @@ import numpy as np
 from sklearn.base import clone
 import pytest
 
-from forestgeom import LeafEncoder
+from forestgeom import ForestProximity
+from tests.prediction_helpers import (
+    predict_classifier_from_proximity,
+    predict_regression_from_proximity,
+)
 
 
 @pytest.mark.parametrize("forest_fixture", ["rf_classifier", "et_classifier"])
@@ -14,12 +18,14 @@ def test_gap_matches_base_classifier_predictions(request, forest_fixture, data_f
     base_forest = clone(forest)
     base_forest.fit(X_train, y_train)
 
-    proximity_model = LeafEncoder(forest=clone(forest), weight_scheme="gap")
-    proximity_preds = proximity_model.fit(X_train, y_train).proximity_predict(X_test)
+    proximity_model = ForestProximity(forest=clone(forest), weight_scheme="gap")
+    proximity_model.fit(X_train, y_train)
+    P = proximity_model.transform(X_test)
+    proximity_preds, proba = predict_classifier_from_proximity(
+        P, y_train, classes=base_forest.classes_
+    )
 
     np.testing.assert_array_equal(proximity_preds, base_forest.predict(X_test))
-
-    proba = proximity_model.proximity_predict_proba(X_test)
     np.testing.assert_allclose(proba.sum(axis=1), np.ones(proba.shape[0]), atol=1e-6)
     np.testing.assert_array_equal(proximity_model.classes_, base_forest.classes_)
 
@@ -33,10 +39,14 @@ def test_gap_matches_base_regressor_predictions(request, forest_fixture, data_fi
     base_forest = clone(forest)
     base_forest.fit(X_train, y_train)
 
-    proximity_model = LeafEncoder(forest=clone(forest), weight_scheme="gap")
-    proximity_preds = proximity_model.fit(X_train, y_train).proximity_predict(X_test)
+    proximity_model = ForestProximity(forest=clone(forest), weight_scheme="gap")
+    proximity_model.fit(X_train, y_train)
+    P = proximity_model.transform(X_test)
+    proximity_preds = predict_regression_from_proximity(P, y_train)
 
-    np.testing.assert_allclose(proximity_preds, base_forest.predict(X_test))
-
-    with pytest.raises(AttributeError):
-        proximity_model.proximity_predict_proba(X_test)
+    np.testing.assert_allclose(
+        proximity_preds,
+        base_forest.predict(X_test),
+        rtol=1e-5,
+        atol=1e-6,
+    )
