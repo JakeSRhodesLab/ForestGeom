@@ -130,7 +130,8 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         ----------
         forest : BaseEstimator, default=None
             The tree ensemble to wrap, such as a random forest or boosted tree model.
-            It is cloned and fitted inside :meth:`fit`.
+            If unfitted, it is cloned and fitted inside :meth:`fit`. If already
+            fitted, it is reused in-place and not refit.
 
         weight_scheme : str, default="uniform"
             Leaf-weighting scheme used to build the query and reference maps.
@@ -181,7 +182,10 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             weight_scheme=self.weight_scheme,
         )
 
-        adapter.fit(X, y, **fit_kwargs)
+        try:
+            check_is_fitted(self.forest)
+        except NotFittedError:
+            adapter.fit(X, y, **fit_kwargs)
 
         self.forest_ = adapter
         self.X_fit_ = X
@@ -299,6 +303,8 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             Training targets.
         **fit_kwargs
             Additional keyword arguments passed to the wrapped forest adapter.
+            These are ignored when ``forest`` is already fitted, because the
+            forest is reused without refitting.
 
         Returns
         -------

@@ -212,8 +212,10 @@ The important distinction is:
 
 # Usage
 
-`ForestProximity` wraps a tree ensemble estimator and clones/fits it during
-`fit(...)`. It supports a unified set of forest backends and weighting schemes:
+`ForestProximity` wraps a tree ensemble estimator. During `fit(...)`, unfitted
+estimators are cloned and fitted, while already fitted estimators are reused
+without refitting. It supports a unified set of forest backends and weighting
+schemes:
 
 Supported base forest classes include:
 
