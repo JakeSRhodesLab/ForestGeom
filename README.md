@@ -328,6 +328,7 @@ The repository includes notebook demos for common workflows:
 
 - `demos/demo_iris.ipynb`: general-purpose introduction on the Iris dataset.
 - `demos/demo_leaf_pca.ipynb`: matrix-free supervised manifold learning with leaf PCA using the leaf-incidence maps in kernel proximities.
+- `demos/demo_unsupervised_swissroll.ipynb`: unsupervised Swiss roll visualization comparing raw embeddings, `RandomTreesEmbedding` uniform leaf maps, and supervised Random Forest uniform leaf maps across PCA, t-SNE, spectral embedding, Isomap, and LLE.
 - `demos/demo_boosted.ipynb`: boosted-tree examples using the optional boosted
   adapters.
 
