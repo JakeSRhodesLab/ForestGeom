@@ -6,7 +6,7 @@ from .base import EnsembleAdapter
 
 class RFETAdapter(EnsembleAdapter):
     """
-    Adapter for sklearn RandomForest / ExtraTrees ensembles.
+    Adapter for sklearn RandomForest / ExtraTrees / RandomTreesEmbedding ensembles.
     """
 
     supported_weight_schemes = {"uniform", "kerf", "oob", "gap"}

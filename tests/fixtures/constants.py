@@ -12,6 +12,10 @@ RF_ET_FORESTS_AND_DATA = [
     ("et_regressor", "regression_data"),
 ]
 
+RTE_FORESTS_AND_DATA = [
+    ("random_trees_embedding", "classification_data"),
+]
+
 BOOSTED_FORESTS_AND_DATA_ALL = [
     ("gbt_classifier", "classification_data"),
     ("lgbm_classifier", "classification_data"),
@@ -26,6 +30,7 @@ BOOSTED_FORESTS_AND_DATA = [
 ]
 
 RF_ET_WEIGHT_SCHEMES = ["uniform", "kerf", "oob", "gap"]
+RTE_WEIGHT_SCHEMES = ["uniform", "kerf"]
 
 BOOSTED_WEIGHT_SCHEMES = ["uniform", "kerf", "boosted"]
 BOOSTED_SUPPORTED_CASES = [
@@ -56,6 +61,11 @@ ALL_SUPPORTED_CASES = [
         (forest_fixture, data_fixture, weight_scheme)
         for forest_fixture, data_fixture in RF_ET_FORESTS_AND_DATA
         for weight_scheme in RF_ET_WEIGHT_SCHEMES
+    ],
+    *[
+        (forest_fixture, data_fixture, weight_scheme)
+        for forest_fixture, data_fixture in RTE_FORESTS_AND_DATA
+        for weight_scheme in RTE_WEIGHT_SCHEMES
     ],
     *BOOSTED_SUPPORTED_CASES,
 ]

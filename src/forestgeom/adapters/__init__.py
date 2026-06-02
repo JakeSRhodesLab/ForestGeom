@@ -3,11 +3,12 @@ from sklearn.ensemble import (
     RandomForestRegressor,
     ExtraTreesClassifier,
     ExtraTreesRegressor,
+    RandomTreesEmbedding,
     GradientBoostingClassifier,
     GradientBoostingRegressor,
 )
 
-from .rf_et import RFETAdapter
+from .rf_et_rte import RFETAdapter
 from .gbt import GBTAdapter
 
 
@@ -31,11 +32,12 @@ except ImportError:
     _XGB_CLASSES = ()
 
 
-_RF_ET_CLASSES = (
+_RF_ET_RTE_CLASSES = (
     RandomForestClassifier,
     RandomForestRegressor,
     ExtraTreesClassifier,
     ExtraTreesRegressor,
+    RandomTreesEmbedding,
 )
 
 _GBT_CLASSES = (
@@ -51,7 +53,7 @@ def make_adapter(estimator, weight_scheme=None):
     If weight_scheme is provided, validate that the selected adapter supports
     this forest / weight_scheme combination.
     """
-    if isinstance(estimator, _RF_ET_CLASSES):
+    if isinstance(estimator, _RF_ET_RTE_CLASSES):
         adapter = RFETAdapter(estimator)
 
     elif isinstance(estimator, _GBT_CLASSES):
@@ -67,6 +69,7 @@ def make_adapter(estimator, weight_scheme=None):
         supported = [
             "RandomForestClassifier/Regressor",
             "ExtraTreesClassifier/Regressor",
+            "RandomTreesEmbedding",
             "GradientBoostingClassifier/Regressor",
         ]
 

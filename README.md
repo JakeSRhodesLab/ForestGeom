@@ -149,11 +149,11 @@ pip install -e ".[test]"
 # Architecture
 
 ForestGeom is organized around one central object, `ForestProximity`. The class
-wraps a fitted tree ensemble and turns it into a reusable geometry object built
+wraps a fitted or unfitted tree ensemble and turns it into a reusable geometry object built
 from sparse leaf-incidence maps.
 
 ```text
-        RandomForest / ExtraTrees / GBT / LightGBM / XGBoost
+  RandomForest / ExtraTrees / RandomTreesEmbedding / GBT / LightGBM / XGBoost
                                     |
                                     v
    X_train, y_train --> +------------------------+
@@ -223,6 +223,7 @@ Supported base forest classes include:
 - `sklearn.ensemble.RandomForestRegressor`
 - `sklearn.ensemble.ExtraTreesClassifier`
 - `sklearn.ensemble.ExtraTreesRegressor`
+- `sklearn.ensemble.RandomTreesEmbedding`
 - `sklearn.ensemble.GradientBoostingClassifier`
 - `sklearn.ensemble.GradientBoostingRegressor`
 - `lightgbm.LGBMClassifier` and `lightgbm.LGBMRegressor` with
@@ -241,10 +242,11 @@ Supported leaf-weighting schemes include:
 - `boosted`: symmetric tree-weighted leaf kernel for supported boosted
   ensembles.
 
-Not every estimator supports every weighting scheme. Random Forests and
-ExtraTrees estimators support `uniform` and `kerf`; they support `oob` and
-`gap` only when fitted with `bootstrap=True`. Boosted estimators support
-`uniform`, `kerf`, and `boosted`.
+Not every estimator supports every weighting scheme. Random Forests,
+ExtraTrees, and RandomTreesEmbedding estimators support `uniform` and `kerf`;
+Random Forests and ExtraTrees estimators support `oob` and `gap` only when
+initialized with `bootstrap=True`. Boosted estimators support `uniform`, `kerf`, and
+`boosted`.
 
 Use `fit(...)` when you want to train and keep the fitted geometry, and use
 `fit_transform(...)` when you want the fitted train-train proximity matrix right

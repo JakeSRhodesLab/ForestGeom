@@ -43,7 +43,7 @@ class EnsembleAdapter:
 
         return self
 
-    def fit(self, X, y, **fit_kwargs):
+    def fit(self, X, y=None, **fit_kwargs):
         """
         Clone and fit the wrapped estimator.
 

@@ -4,6 +4,7 @@ from sklearn.ensemble import (
     RandomForestRegressor,
     ExtraTreesClassifier,
     ExtraTreesRegressor,
+    RandomTreesEmbedding,
     GradientBoostingClassifier,
 )
 
@@ -53,6 +54,15 @@ def et_regressor():
     return ExtraTreesRegressor(
         n_estimators=50,
         bootstrap=True,
+        random_state=0,
+        n_jobs=-1,
+    )
+
+
+@pytest.fixture
+def random_trees_embedding():
+    return RandomTreesEmbedding(
+        n_estimators=50,
         random_state=0,
         n_jobs=-1,
     )

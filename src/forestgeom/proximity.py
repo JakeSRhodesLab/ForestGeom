@@ -167,12 +167,12 @@ class ForestProximity(TransformerMixin, BaseEstimator):
     def _format(self, matrix, return_dense=False):
         return format_output_matrix(matrix, return_dense=return_dense)
 
-    def _fit_forest(self, X, y, **fit_kwargs):
+    def _fit_forest(self, X, y=None, **fit_kwargs):
         """
         Fit the wrapped forest and cache the training data needed to build maps.
         """
         X = np.asarray(X)
-        y = np.asarray(y).ravel()
+        y = None if y is None else np.asarray(y).ravel()
 
         if self.forest is None:
             raise ValueError("`forest` must be provided.")
@@ -192,7 +192,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         self.y_ = y
         self.classes_ = (
             getattr(adapter.estimator, "classes_", np.unique(y))
-            if self._is_classifier(fitted=True)
+            if y is not None and self._is_classifier(fitted=True)
             else None
         )
         self.cache_ = None
@@ -293,14 +293,15 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
         return self
 
-    def fit(self, X, y, **fit_kwargs):
+    def fit(self, X, y=None, **fit_kwargs):
         """
         Parameters
         ----------
         X : array-like of shape (n_samples, n_features)
             Training samples used to fit the wrapped forest.
-        y : array-like of shape (n_samples,)
-            Training targets.
+        y : array-like of shape (n_samples,), optional
+            Training targets. May be omitted for unsupervised forests such as
+            ``RandomTreesEmbedding``.
         **fit_kwargs
             Additional keyword arguments passed to the wrapped forest adapter.
             These are ignored when ``forest`` is already fitted, because the
@@ -322,7 +323,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
     def fit_transform(
         self,
         X,
-        y,
+        y=None,
         return_dense=False,
         force_symmetric=False,
         adjust_diagonal=False,
@@ -333,8 +334,9 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         ----------
         X : array-like of shape (n_samples, n_features)
             Training samples used to fit the wrapped forest.
-        y : array-like of shape (n_samples,)
-            Training targets.
+        y : array-like of shape (n_samples,), optional
+            Training targets. May be omitted for unsupervised forests such as
+            ``RandomTreesEmbedding``.
         return_dense : bool, default=False
             Return a dense array instead of a sparse matrix.
         force_symmetric : bool, default=False
