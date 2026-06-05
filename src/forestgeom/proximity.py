@@ -190,6 +190,10 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         self.forest_ = adapter
         self.X_fit_ = X
         self.y_ = y
+        # Persist sample_weight passed at fit time so bootstrap statistics
+        # (OOB mask, in-bag counts) can be reconstructed consistently.
+        # Store the raw sample_weight (may be None).
+        self.sample_weight_ = fit_kwargs.get("sample_weight", None)
         self.classes_ = (
             getattr(adapter.estimator, "classes_", np.unique(y))
             if y is not None and self._is_classifier(fitted=True)
@@ -217,10 +221,10 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         )
 
         if self.weight_scheme in ("oob", "gap"):
-            oob_mask = self.forest_.get_oob_mask(X).astype(np.int8)
+            oob_mask = self.forest_.get_oob_mask(X, sample_weight=getattr(self, "sample_weight_", None)).astype(np.int8)
 
             inbag_counts = (
-                self.forest_.get_in_bag_counts(X).astype(np.float32)
+                self.forest_.get_in_bag_counts(X, sample_weight=getattr(self, "sample_weight_", None)).astype(np.float32)
                 if self.weight_scheme == "gap"
                 else None
             )
@@ -306,6 +310,15 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             Additional keyword arguments passed to the wrapped forest adapter.
             These are ignored when ``forest`` is already fitted, because the
             forest is reused without refitting.
+
+            Note
+            ----
+            If a ``sample_weight`` keyword is provided it will be persisted on
+            the fitted ``ForestProximity`` instance as the attribute
+            ``sample_weight_`` and used to reconstruct bootstrap statistics
+            (OOB mask and in-bag counts) when building the cache. This
+            ensures that weighted sampling performed during fit is reflected
+            in derived proximity statistics.
 
         Returns
         -------

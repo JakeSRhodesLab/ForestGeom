@@ -8,8 +8,22 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.utils.validation import check_is_fitted
 
 # Import the private `_forest` helpers (sklearn>=0.24 uses private API).
-from sklearn.ensemble._forest import _generate_unsampled_indices
-from sklearn.ensemble._forest import _generate_sample_indices
+from sklearn.ensemble._forest import _generate_unsampled_indices as _skl_generate_unsampled_indices
+from sklearn.ensemble._forest import _generate_sample_indices as _skl_generate_sample_indices
+
+
+def _generate_unsampled_indices(random_state, n_samples, n_samples_bootstrap, sample_weight=None):
+    try:
+        return _skl_generate_unsampled_indices(random_state, n_samples, n_samples_bootstrap, sample_weight)
+    except TypeError:
+        return _skl_generate_unsampled_indices(random_state, n_samples, n_samples_bootstrap)
+
+
+def _generate_sample_indices(random_state, n_samples, n_samples_bootstrap, sample_weight=None):
+    try:
+        return _skl_generate_sample_indices(random_state, n_samples, n_samples_bootstrap, sample_weight)
+    except TypeError:
+        return _skl_generate_sample_indices(random_state, n_samples, n_samples_bootstrap)
 
 
 def RFGAP(
@@ -123,7 +137,7 @@ def RFGAP(
             n = len(X)
             oob_samples = []
             for tree in self.estimators_:
-                oob_idx = _generate_unsampled_indices(tree.random_state, n, n)
+                oob_idx = _generate_unsampled_indices(tree.random_state, n, n, None)
                 oob_samples.append(oob_idx)
             return oob_samples
 
@@ -149,7 +163,7 @@ def RFGAP(
             n = len(X)
             in_bag_samples = []
             for tree in self.estimators_:
-                in_bag_sample = _generate_sample_indices(tree.random_state, n, n)
+                in_bag_sample = _generate_sample_indices(tree.random_state, n, n, None)
                 in_bag_samples.append(in_bag_sample)
             return in_bag_samples
 

@@ -159,7 +159,7 @@ The sweep covers:
 
 - lowest supported core dependency stack on Python 3.10
 - latest core dependency stack across supported Python versions
-- scikit-learn compatibility scenarios from 1.3 through 1.7
+- scikit-learn compatibility scenarios from 1.3 through 1.9
 - lowest and latest optional boosted dependency stacks
 
 If a scenario is skipped, the corresponding Python interpreter is probably not

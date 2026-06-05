@@ -67,14 +67,14 @@ class EnsembleAdapter:
         """
         raise NotImplementedError
 
-    def get_oob_mask(self, X_train=None):
+    def get_oob_mask(self, X_train=None, sample_weight=None):
         """
         Return OOB mask matrix of shape (N_train, T), where entry (i,t)=1 if
         sample i is OOB for tree t.
         """
         raise NotImplementedError
 
-    def get_in_bag_counts(self, X_train=None):
+    def get_in_bag_counts(self, X_train=None, sample_weight=None):
         """
         Return in-bag multiplicity matrix of shape (N_train, T), where entry
         (i,t) is the number of times sample i was drawn for tree t.

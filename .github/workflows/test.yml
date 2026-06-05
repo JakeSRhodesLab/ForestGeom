@@ -63,6 +63,12 @@ jobs:
           - os: ubuntu-latest
             python: "3.10"
             tox-env: py310-sklearn-1.7
+          - os: ubuntu-latest
+            python: "3.11"
+            tox-env: py311-sklearn-1.8
+          - os: ubuntu-latest
+            python: "3.11"
+            tox-env: py311-sklearn-1.9
 
           # Optional boosted adapters.
           - os: ubuntu-latest

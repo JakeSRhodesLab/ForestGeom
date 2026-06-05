@@ -1,6 +1,25 @@
 import numpy as np
-from sklearn.ensemble._forest import _generate_unsampled_indices
-from sklearn.ensemble._forest import _generate_sample_indices
+from sklearn.ensemble._forest import _generate_unsampled_indices as _skl_generate_unsampled_indices
+from sklearn.ensemble._forest import _generate_sample_indices as _skl_generate_sample_indices
+
+
+def _generate_unsampled_indices(random_state, n_samples, n_samples_bootstrap, sample_weight=None):
+    """Compatibility wrapper for sklearn's private helper.
+
+    Newer sklearn versions accept a `sample_weight` argument. Try calling
+    with it, otherwise fall back to the old 3-arg call.
+    """
+    try:
+        return _skl_generate_unsampled_indices(random_state, n_samples, n_samples_bootstrap, sample_weight)
+    except TypeError:
+        return _skl_generate_unsampled_indices(random_state, n_samples, n_samples_bootstrap)
+
+
+def _generate_sample_indices(random_state, n_samples, n_samples_bootstrap, sample_weight=None):
+    try:
+        return _skl_generate_sample_indices(random_state, n_samples, n_samples_bootstrap, sample_weight)
+    except TypeError:
+        return _skl_generate_sample_indices(random_state, n_samples, n_samples_bootstrap)
 from .base import EnsembleAdapter
 
 
@@ -37,7 +56,7 @@ class RFETAdapter(EnsembleAdapter):
         """
         return [self._extract_tree(est).tree_.node_count for est in self.estimator.estimators_]
 
-    def get_oob_mask(self, X_train=None):
+    def get_oob_mask(self, X_train=None, sample_weight=None):
         """
         Returns OOB mask matrix of shape (N_train, T), where entry (i,t)=1 if
         sample i is OOB for tree t.
@@ -52,13 +71,14 @@ class RFETAdapter(EnsembleAdapter):
             unsampled = _generate_unsampled_indices(
                 tree.random_state,
                 n_samples,
-                n_samples
+                n_samples,
+                sample_weight,
             )
             oob_mask[unsampled, t] = 1
 
         return oob_mask
 
-    def get_in_bag_counts(self, X_train=None):
+    def get_in_bag_counts(self, X_train=None, sample_weight=None):
         """
         Returns in-bag multiplicity matrix of shape (N_train, T), where entry
         (i,t) is the number of times sample i was drawn for tree t.
@@ -73,7 +93,8 @@ class RFETAdapter(EnsembleAdapter):
             sampled = _generate_sample_indices(
                 tree.random_state,
                 n_samples,
-                n_samples
+                n_samples,
+                sample_weight,
             )
             binc = np.bincount(sampled, minlength=n_samples)
             counts[:, t] = binc
