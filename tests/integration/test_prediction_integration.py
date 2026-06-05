@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 from sklearn.base import clone
 from sklearn.metrics import accuracy_score, mean_squared_error
