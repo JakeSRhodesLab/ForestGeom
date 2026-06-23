@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from scipy import sparse
 from sklearn.base import BaseEstimator, TransformerMixin, is_classifier
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
@@ -488,6 +489,86 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             P = normalize_oob_oos_proximity(P, self.cache_.oob_mask)
 
         return self._format(P, return_dense=return_dense)
+
+    def joint_proximity(
+        self,
+        X,
+        return_dense=False,
+        force_symmetric=False,
+        adjust_diagonal=False,
+    ):
+        """
+        Return a fitted train-plus-query proximity matrix.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Query samples to append after the fitted training samples.
+        return_dense : bool, default=False
+            Return a dense array instead of a sparse matrix.
+        force_symmetric : bool, default=False
+            For ``weight_scheme="gap"``, symmetrize the training block before
+            assembling the joint matrix. Ignored for symmetric schemes.
+        adjust_diagonal : bool, default=False
+            For ``weight_scheme="gap"``, apply the existing training-block
+            diagonal correction before assembling the joint matrix. Ignored for
+            symmetric schemes.
+
+        Returns
+        -------
+        P_joint : sparse matrix or ndarray of shape
+            (n_train + n_samples, n_train + n_samples)
+            Joint proximity matrix ordered as ``[X_train, X]``.
+
+        Notes
+        -----
+        For ``"uniform"``, ``"kerf"``, and ``"boosted"``, the joint matrix is
+        built from the stacked sparse query maps:
+
+            ``P_joint = Q_all Q_all^T``.
+
+        For ``"gap"``, the joint matrix is assembled as:
+
+            ``[[P_train_train, P_test_train.T], [P_test_train, 0]]``.
+
+        Here ``P_test_train`` is exactly the existing out-of-sample block
+        returned by :meth:`transform`, and the test-test GAP block is explicitly
+        zero-valued. The ``"oob"`` scheme is not supported because no canonical
+        test-test OOB proximity is currently defined.
+        """
+        self._check_fitted()
+
+        if self.weight_scheme == "oob":
+            raise ValueError(
+                "joint_proximity is not available for weight_scheme='oob' "
+                "because no canonical test-test OOB proximity is defined."
+            )
+
+        if self.weight_scheme == "gap":
+            P_train_train = self.training_proximity(
+                force_symmetric=force_symmetric,
+                adjust_diagonal=adjust_diagonal,
+                return_dense=False,
+            )
+            P_test_train = self.transform(X, return_dense=False)
+            n_query = P_test_train.shape[0]
+            P_test_test = sparse.csr_matrix((n_query, n_query), dtype=np.float32)
+            P_joint = sparse.bmat(
+                [
+                    [P_train_train, P_test_train.T],
+                    [P_test_train, P_test_test],
+                ],
+                format="csr",
+                dtype=np.float32,
+            )
+            return self._format(P_joint, return_dense=return_dense)
+
+        Q_train = self.query_map(return_dense=False)
+        Q_test = self.query_map(X, return_dense=False)
+        Q_all = sparse.vstack([Q_train, Q_test], format="csr")
+        P_joint = Q_all.dot(Q_all.T)
+
+        return self._format(P_joint, return_dense=return_dense)
 
     def training_proximity(
         self,

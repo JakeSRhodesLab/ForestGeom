@@ -253,6 +253,8 @@ Use `fit(...)` when you want to train and keep the fitted geometry, and use
 away. Use `query_map(...)` and `reference_map(...)` when you need the actual
 leaf-incidence factors `Q` and `W` for matrix-free applications, and use `transform(...)`
 for the proximity block from new samples to the fitted training set.
+Use `joint_proximity(X_new)` when you want one square sparse matrix over the
+fitted training samples followed by new samples.
 
 For schemes that are not symmetric kernels, **`fit_transform(...)` and
 `fit(...).transform(...)` are not necessarily the same**. If you need the
@@ -264,6 +266,13 @@ query map is typically the leaf-space feature matrix. For asymmetric schemes
 such as `gap`, keep both `Q` and `W` if you want to work directly with the
 geometry. For `oob`, use `training_proximity(...)` or `transform(...)` directly;
 there is no separate query/reference factorization.
+
+`joint_proximity(X_new)` returns a matrix ordered as `[X_train, X_new]`. For
+`uniform`, `kerf`, and `boosted`, it is built from the stacked sparse query maps.
+For `gap`, it uses the existing `transform(X_new)` test-to-train block, its
+transpose for the train-to-test block, and an explicitly zero-valued
+test-to-test block. `oob` is excluded because no canonical test-to-test OOB
+proximity is currently defined.
 
 The sparse geometry can be used directly in proximity-based workflows such as
 manifold learning, dimensionality reduction, visualization, imputation, and
@@ -302,6 +311,7 @@ geometry = ForestProximity(forest=forest, weight_scheme="uniform").fit(X_train, 
 Q_train = geometry.query_map()
 W_train = geometry.reference_map()  # This is the same a Q_train for symmetric schemes such as 'uniform', 'kerf' and 'boosted'.
 Q_test = geometry.query_map(X_test)  # Leaf-incidence representations of the test set.
+K_joint = geometry.joint_proximity(X_test)  # Square proximity matrix over [X_train, X_test].
 
 # Matrix-free forest kernel SVM using the leaf maps directly as sparse features.
 svm = LinearSVC()
