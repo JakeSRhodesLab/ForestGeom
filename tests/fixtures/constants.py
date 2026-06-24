@@ -3,6 +3,8 @@ from importlib.util import find_spec
 
 HAS_LIGHTGBM = find_spec("lightgbm") is not None
 HAS_XGBOOST = find_spec("xgboost") is not None
+HAS_AEON = find_spec("aeon") is not None
+HAS_TREEPLE = find_spec("treeple") is not None
 
 
 RF_ET_FORESTS_AND_DATA = [
@@ -29,10 +31,50 @@ BOOSTED_FORESTS_AND_DATA = [
     and (forest_fixture != "xgb_classifier" or HAS_XGBOOST)
 ]
 
+AEON_FORESTS_AND_DATA_ALL = [
+    ("rotation_forest_classifier", "classification_data"),
+    ("rotation_forest_regressor", "regression_data"),
+]
+
+AEON_FORESTS_AND_DATA = (
+    AEON_FORESTS_AND_DATA_ALL
+    if HAS_AEON
+    else []
+)
+
+TREEPLE_SUPERVISED_FORESTS_AND_DATA_ALL = [
+    ("treeple_oblique_classifier", "classification_data"),
+    ("treeple_patch_oblique_classifier", "classification_data"),
+    ("treeple_extra_oblique_classifier", "classification_data"),
+    ("treeple_honest_classifier", "classification_data"),
+    ("treeple_oblique_regressor", "regression_data"),
+    ("treeple_patch_oblique_regressor", "regression_data"),
+    ("treeple_extra_oblique_regressor", "regression_data"),
+]
+
+TREEPLE_UNSUPERVISED_FORESTS_AND_DATA_ALL = [
+    ("treeple_unsupervised_random_forest", "classification_data"),
+    ("treeple_extended_isolation_forest", "classification_data"),
+]
+
+TREEPLE_SUPERVISED_FORESTS_AND_DATA = (
+    TREEPLE_SUPERVISED_FORESTS_AND_DATA_ALL
+    if HAS_TREEPLE
+    else []
+)
+
+TREEPLE_UNSUPERVISED_FORESTS_AND_DATA = (
+    TREEPLE_UNSUPERVISED_FORESTS_AND_DATA_ALL
+    if HAS_TREEPLE
+    else []
+)
+
 RF_ET_WEIGHT_SCHEMES = ["uniform", "kerf", "oob", "gap"]
 RTE_WEIGHT_SCHEMES = ["uniform", "kerf"]
 
 BOOSTED_WEIGHT_SCHEMES = ["uniform", "kerf", "boosted"]
+AEON_WEIGHT_SCHEMES = ["uniform", "kerf", "oob", "gap"]
+TREEPLE_WEIGHT_SCHEMES = ["uniform", "kerf", "oob", "gap"]
 BOOSTED_SUPPORTED_CASES = [
     *[
         (forest_fixture, data_fixture, weight_scheme)

@@ -7,7 +7,9 @@ import pytest
 
 ADAPTER_MODULE = "forestgeom.adapters"
 OPTIONAL_ADAPTER_MODULES = (
+    "forestgeom.adapters.aeon",
     "forestgeom.adapters.lgbm",
+    "forestgeom.adapters.treeple",
     "forestgeom.adapters.xgb",
 )
 
@@ -33,6 +35,8 @@ def _import_adapters_with_missing_dependency(monkeypatch, missing_module):
     [
         ("lightgbm", "LightGBMAdapter", "_LGBM_CLASSES"),
         ("xgboost", "XGBoostAdapter", "_XGB_CLASSES"),
+        ("aeon", "AeonRotationForestAdapter", "_AEON_ROTATION_FOREST_CLASSES"),
+        ("treeple", "TreepleForestAdapter", "_TREEPLE_CLASSES"),
     ],
 )
 def test_optional_dependency_import_error_is_caught(monkeypatch, missing_module, expected_adapter_attr, expected_classes_attr):

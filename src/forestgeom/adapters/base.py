@@ -87,6 +87,39 @@ class EnsembleAdapter:
         Only relevant for some ensembles such as Gradient Boosting.
         """
         raise NotImplementedError
+
+    def prepare_proximity_cache(
+        self,
+        X,
+        y=None,
+        weight_scheme=None,
+        sample_weight=None,
+    ):
+        """
+        Return optional backend-prepared cache inputs.
+
+        Most estimators expose one fitted leaf space, so the main
+        ``ForestProximity`` cache builder can call ``get_leaf_matrix`` and the
+        bootstrap accessors directly. Backends with scheme-specific internals
+        may override this and return any of:
+
+        - ``leaf_matrix``
+        - ``n_nodes_per_tree``
+        - ``oob_mask``
+        - ``inbag_counts``
+        - ``boosted_tree_weights``
+
+        Missing keys fall back to the standard adapter methods.
+        """
+        return {}
+
+    def transform_proximity(self, X, cache, weight_scheme):
+        """
+        Optionally compute a backend-specific out-of-sample proximity block.
+
+        Return ``None`` to use the generic ``ForestProximity.transform`` path.
+        """
+        return None
     
     def __getattr__(self, name):
         return getattr(self.estimator, name)

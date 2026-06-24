@@ -210,9 +210,24 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         self._check_forest_fitted()
 
         X = self.X_fit_
+        sample_weight = getattr(self, "sample_weight_", None)
 
-        leaf_matrix = self.forest_.get_leaf_matrix(X)
-        n_nodes_per_tree = self.forest_.get_n_nodes_per_tree()
+        prepared = self.forest_.prepare_proximity_cache(
+            X,
+            y=getattr(self, "y_", None),
+            weight_scheme=self.weight_scheme,
+            sample_weight=sample_weight,
+        )
+        if prepared is None:
+            prepared = {}
+
+        leaf_matrix = prepared.get("leaf_matrix")
+        if leaf_matrix is None:
+            leaf_matrix = self.forest_.get_leaf_matrix(X)
+
+        n_nodes_per_tree = prepared.get("n_nodes_per_tree")
+        if n_nodes_per_tree is None:
+            n_nodes_per_tree = self.forest_.get_n_nodes_per_tree()
 
         self.cache_ = initialize_cache(
             leaf_matrix=leaf_matrix,
@@ -221,13 +236,23 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         )
 
         if self.weight_scheme in ("oob", "gap"):
-            oob_mask = self.forest_.get_oob_mask(X, sample_weight=getattr(self, "sample_weight_", None)).astype(np.int8)
+            oob_mask = prepared.get("oob_mask")
+            if oob_mask is None:
+                oob_mask = self.forest_.get_oob_mask(
+                    X,
+                    sample_weight=sample_weight,
+                )
+            oob_mask = oob_mask.astype(np.int8)
 
-            inbag_counts = (
-                self.forest_.get_in_bag_counts(X, sample_weight=getattr(self, "sample_weight_", None)).astype(np.float32)
-                if self.weight_scheme == "gap"
-                else None
-            )
+            inbag_counts = None
+            if self.weight_scheme == "gap":
+                inbag_counts = prepared.get("inbag_counts")
+                if inbag_counts is None:
+                    inbag_counts = self.forest_.get_in_bag_counts(
+                        X,
+                        sample_weight=sample_weight,
+                    )
+                inbag_counts = inbag_counts.astype(np.float32)
 
             attach_bootstrap_stats(
                 self.cache_,
@@ -236,7 +261,9 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             )
 
         if self.weight_scheme == "boosted":
-            boosted_tree_weights = self.forest_.get_tree_weights(X)
+            boosted_tree_weights = prepared.get("boosted_tree_weights")
+            if boosted_tree_weights is None:
+                boosted_tree_weights = self.forest_.get_tree_weights(X)
             attach_boosted_weights(self.cache_, boosted_tree_weights)
 
         if self.weight_scheme == "kerf":
@@ -470,6 +497,14 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         the fitted training samples.
         """
         self._check_fitted()
+
+        P = self.forest_.transform_proximity(
+            np.asarray(X),
+            cache=self.cache_,
+            weight_scheme=self.weight_scheme,
+        )
+        if P is not None:
+            return self._format(P, return_dense=return_dense)
 
         if self.weight_scheme == "oob":
             leaves = self.forest_.get_leaf_matrix(np.asarray(X))

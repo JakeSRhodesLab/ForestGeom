@@ -84,6 +84,7 @@ IMAGE_GLOBAL_TRANSFORM = True
 # Keep only the first 10 SignMNIST letters
 # SignMNIST skips J, so this is the first 10 available letters A..K without J
 SIGN_MNIST_ALLOWED_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "K"]
+SIGN_MNIST_ALLOWED_CODES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10]
 
 # Fixed forest setup for leaf-space methods
 KERNEL_METHOD = "kerf"  # do not set to gap which is asymmetric
@@ -224,8 +225,18 @@ def crop_sign_mnist(
     id_train_raw,
     id_test_raw,
 ):
-    mask_train = np.isin(np.asarray(y_train_raw), SIGN_MNIST_ALLOWED_LETTERS)
-    mask_test = np.isin(np.asarray(y_test_raw), SIGN_MNIST_ALLOWED_LETTERS)
+    def _mask(y_raw):
+        labels = np.asarray(y_raw)
+        letter_mask = np.isin(
+            np.char.upper(labels.astype(str)),
+            SIGN_MNIST_ALLOWED_LETTERS,
+        )
+        numeric = pd.to_numeric(pd.Series(labels), errors="coerce").to_numpy()
+        code_mask = np.isin(numeric, SIGN_MNIST_ALLOWED_CODES)
+        return letter_mask | code_mask
+
+    mask_train = _mask(y_train_raw)
+    mask_test = _mask(y_test_raw)
 
     X_train = X_train[mask_train]
     X_test = X_test[mask_test]

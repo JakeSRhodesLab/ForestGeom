@@ -89,6 +89,15 @@ Optional dependencies are grouped by feature:
 # LightGBM and XGBoost adapters
 uv pip install "forestgeom[boosted]"
 
+# aeon RotationForest adapters
+uv pip install "forestgeom[aeon]"
+
+# treeple forest adapters
+uv pip install "forestgeom[treeple]"
+
+# aeon and treeple adapters
+uv pip install "forestgeom[extended-forests]"
+
 # Visualization and embedding tools
 uv pip install "forestgeom[viz]"
 
@@ -124,6 +133,10 @@ uv add forestgeom
 uv add "forestgeom[boosted]"
 ```
 
+The aeon extra is active on Python 3.11 and newer. The treeple extra is pinned
+to treeple 0.10.3 and is active on Python versions with published treeple wheels
+through Python 3.12.
+
 For local development from a cloned checkout:
 
 ```bash
@@ -136,6 +149,9 @@ uv sync --extra test
 ```bash
 pip install forestgeom
 pip install "forestgeom[boosted]"
+pip install "forestgeom[aeon]"
+pip install "forestgeom[treeple]"
+pip install "forestgeom[extended-forests]"
 pip install "forestgeom[viz]"
 pip install "forestgeom[experiments]"
 pip install "forestgeom[test]"
@@ -229,6 +245,10 @@ Supported base forest classes include:
 - `lightgbm.LGBMClassifier` and `lightgbm.LGBMRegressor` with
   `forestgeom[boosted]`
 - `xgboost.XGBClassifier` and `xgboost.XGBRegressor` with `forestgeom[boosted]`
+- `aeon.classification.sklearn.RotationForestClassifier` and
+  `aeon.regression.sklearn.RotationForestRegressor` with `forestgeom[aeon]`
+- treeple oblique, patch-oblique, extra-oblique, honest, unsupervised random
+  forest, and extended isolation forest estimators with `forestgeom[treeple]`
 
 Supported leaf-weighting schemes include:
 
@@ -246,7 +266,9 @@ Not every estimator supports every weighting scheme. Random Forests,
 ExtraTrees, and RandomTreesEmbedding estimators support `uniform` and `kerf`;
 Random Forests and ExtraTrees estimators support `oob` and `gap` only when
 initialized with `bootstrap=True`. Boosted estimators support `uniform`, `kerf`, and
-`boosted`.
+`boosted`. aeon RotationForest `oob` and `gap` support follows aeon's
+backend-private RotationForest internals to reconstruct OOB surrogate trees;
+unsupported aeon internals fail with an explicit compatibility error.
 
 Use `fit(...)` when you want to train and keep the fitted geometry, and use
 `fit_transform(...)` when you want the fitted train-train proximity matrix right

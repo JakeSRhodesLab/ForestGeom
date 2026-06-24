@@ -32,6 +32,45 @@ except ImportError:
     _XGB_CLASSES = ()
 
 
+try:
+    from aeon.classification.sklearn import RotationForestClassifier
+    from aeon.regression.sklearn import RotationForestRegressor
+    from .aeon import AeonRotationForestAdapter
+
+    _AEON_ROTATION_FOREST_CLASSES = (
+        RotationForestClassifier,
+        RotationForestRegressor,
+    )
+except Exception:
+    AeonRotationForestAdapter = None
+    _AEON_ROTATION_FOREST_CLASSES = ()
+
+
+try:
+    import treeple as _treeple
+    from .treeple import TreepleForestAdapter
+
+    _TREEPLE_CLASS_NAMES = (
+        "ObliqueRandomForestClassifier",
+        "ObliqueRandomForestRegressor",
+        "PatchObliqueRandomForestClassifier",
+        "PatchObliqueRandomForestRegressor",
+        "ExtraObliqueRandomForestClassifier",
+        "ExtraObliqueRandomForestRegressor",
+        "HonestForestClassifier",
+        "UnsupervisedRandomForest",
+        "ExtendedIsolationForest",
+    )
+    _TREEPLE_CLASSES = tuple(
+        getattr(_treeple, name)
+        for name in _TREEPLE_CLASS_NAMES
+        if hasattr(_treeple, name)
+    )
+except Exception:
+    TreepleForestAdapter = None
+    _TREEPLE_CLASSES = ()
+
+
 _RF_ET_RTE_CLASSES = (
     RandomForestClassifier,
     RandomForestRegressor,
@@ -65,6 +104,15 @@ def make_adapter(estimator, weight_scheme=None):
     elif _XGB_CLASSES and isinstance(estimator, _XGB_CLASSES):
         adapter = XGBoostAdapter(estimator)
 
+    elif _AEON_ROTATION_FOREST_CLASSES and isinstance(
+        estimator,
+        _AEON_ROTATION_FOREST_CLASSES,
+    ):
+        adapter = AeonRotationForestAdapter(estimator)
+
+    elif _TREEPLE_CLASSES and isinstance(estimator, _TREEPLE_CLASSES):
+        adapter = TreepleForestAdapter(estimator)
+
     else:
         supported = [
             "RandomForestClassifier/Regressor",
@@ -78,6 +126,12 @@ def make_adapter(estimator, weight_scheme=None):
 
         if _XGB_CLASSES:
             supported.append("XGBClassifier/Regressor")
+
+        if _AEON_ROTATION_FOREST_CLASSES:
+            supported.append("aeon RotationForestClassifier/Regressor")
+
+        if _TREEPLE_CLASSES:
+            supported.append("treeple forest-like estimators")
 
         raise TypeError(
             "Unsupported forest estimator. Expected one of: "

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import time
 import threading
 from pathlib import Path
@@ -8,11 +9,15 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import psutil
 from scipy import sparse
 from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
 
 from dataset import dataprep
+
+try:
+    import psutil
+except ImportError:  # pragma: no cover - optional dependency fallback
+    psutil = None
 
 
 def resolve_dataset_paths_from_base_names(
@@ -360,20 +365,77 @@ def predict_classifier_from_proximity(P, y_train, classes):
 class MemoryMonitor:
     def __init__(self, poll_seconds: float = 0.01):
         self.poll_seconds = poll_seconds
-        self.process = psutil.Process(os.getpid())
+        self.process = psutil.Process(os.getpid()) if psutil is not None else None
         self.start_rss = None
         self.peak_rss = None
         self._stop = None
         self._thread = None
 
+    @staticmethod
+    def _current_rss_bytes() -> int:
+        if psutil is not None:
+            return int(psutil.Process(os.getpid()).memory_info().rss)
+
+        if sys.platform == "win32":
+            try:
+                import ctypes
+                from ctypes import wintypes
+
+                class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+                    _fields_ = [
+                        ("cb", wintypes.DWORD),
+                        ("PageFaultCount", wintypes.DWORD),
+                        ("PeakWorkingSetSize", ctypes.c_size_t),
+                        ("WorkingSetSize", ctypes.c_size_t),
+                        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                        ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                        ("PagefileUsage", ctypes.c_size_t),
+                        ("PeakPagefileUsage", ctypes.c_size_t),
+                    ]
+
+                counters = PROCESS_MEMORY_COUNTERS()
+                counters.cb = ctypes.sizeof(PROCESS_MEMORY_COUNTERS)
+
+                kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+                psapi = ctypes.WinDLL("psapi", use_last_error=True)
+                kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+                psapi.GetProcessMemoryInfo.argtypes = [
+                    wintypes.HANDLE,
+                    ctypes.POINTER(PROCESS_MEMORY_COUNTERS),
+                    wintypes.DWORD,
+                ]
+                psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+
+                handle = kernel32.GetCurrentProcess()
+                ok = psapi.GetProcessMemoryInfo(
+                    handle,
+                    ctypes.byref(counters),
+                    counters.cb,
+                )
+                if ok:
+                    return int(counters.WorkingSetSize)
+            except Exception:
+                pass
+
+            return 0
+
+        import resource
+
+        rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        if sys.platform == "darwin":
+            return int(rss)
+        return int(rss) * 1024
+
     def __enter__(self):
-        self.start_rss = self.process.memory_info().rss
+        self.start_rss = self._current_rss_bytes()
         self.peak_rss = self.start_rss
         self._stop = False
 
         def _run():
             while not self._stop:
-                rss = self.process.memory_info().rss
+                rss = self._current_rss_bytes()
                 if rss > self.peak_rss:
                     self.peak_rss = rss
                 time.sleep(self.poll_seconds)
