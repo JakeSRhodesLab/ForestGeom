@@ -264,15 +264,17 @@ training geometry, use `fit_transform(...)` directly or call
 For symmetric weighting schemes such as `uniform`, `kerf`, and `boosted`, the
 query map is typically the leaf-space feature matrix. For asymmetric schemes
 such as `gap`, keep both `Q` and `W` if you want to work directly with the
-geometry. For `oob`, use `training_proximity(...)` or `transform(...)` directly;
-there is no separate query/reference factorization.
+geometry. For `oob`, use `training_proximity(...)`, `transform(...)`, or
+`joint_proximity(...)` directly; there is no separate query/reference
+factorization.
 
 `joint_proximity(X_new)` returns a matrix ordered as `[X_train, X_new]`. For
 `uniform`, `kerf`, and `boosted`, it is built from the stacked sparse query maps.
-For `gap`, it uses the existing `transform(X_new)` test-to-train block, its
-transpose for the train-to-test block, and an explicitly zero-valued
-test-to-test block. `oob` is excluded because no canonical test-to-test OOB
-proximity is currently defined.
+For `oob`, it assembles the normalized train-train OOB block, the existing
+`transform(X_new)` test-to-train block and its transpose, and a test-to-test
+block that treats every new sample as OOB for every tree. `gap` is excluded from
+`joint_proximity(...)` because GAP is directional; use
+`training_proximity(...)` and `transform(...)` for the canonical GAP blocks.
 
 The sparse geometry can be used directly in proximity-based workflows such as
 manifold learning, dimensionality reduction, visualization, imputation, and

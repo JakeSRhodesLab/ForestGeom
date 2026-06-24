@@ -507,12 +507,11 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         return_dense : bool, default=False
             Return a dense array instead of a sparse matrix.
         force_symmetric : bool, default=False
-            For ``weight_scheme="gap"``, symmetrize the training block before
-            assembling the joint matrix. Ignored for symmetric schemes.
+            Ignored for symmetric schemes. ``weight_scheme="gap"`` is not
+            supported by this method because GAP is directional.
         adjust_diagonal : bool, default=False
-            For ``weight_scheme="gap"``, apply the existing training-block
-            diagonal correction before assembling the joint matrix. Ignored for
-            symmetric schemes.
+            Ignored for symmetric schemes. ``weight_scheme="gap"`` is not
+            supported by this method because GAP is directional.
 
         Returns
         -------
@@ -527,32 +526,40 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
             ``P_joint = Q_all Q_all^T``.
 
-        For ``"gap"``, the joint matrix is assembled as:
-
-            ``[[P_train_train, P_test_train.T], [P_test_train, 0]]``.
-
-        Here ``P_test_train`` is exactly the existing out-of-sample block
-        returned by :meth:`transform`, and the test-test GAP block is explicitly
-        zero-valued. The ``"oob"`` scheme is not supported because no canonical
-        test-test OOB proximity is currently defined.
+        For ``"oob"``, the training block uses the standard pairwise shared-OOB
+        normalization, the cross blocks use the existing out-of-sample OOB
+        normalization, and the test-test block treats all query samples as OOB
+        for every tree. ``"gap"`` is not supported here because GAP is a
+        directional proximity; use :meth:`training_proximity` and
+        :meth:`transform` for the canonical GAP blocks.
         """
         self._check_fitted()
 
-        if self.weight_scheme == "oob":
+        if self.weight_scheme == "gap":
             raise ValueError(
-                "joint_proximity is not available for weight_scheme='oob' "
-                "because no canonical test-test OOB proximity is defined."
+                "joint_proximity is not available for weight_scheme='gap' "
+                "because GAP is directional; use training_proximity(...) and "
+                "transform(...) for canonical GAP blocks."
             )
 
-        if self.weight_scheme == "gap":
-            P_train_train = self.training_proximity(
-                force_symmetric=force_symmetric,
-                adjust_diagonal=adjust_diagonal,
-                return_dense=False,
+        if self.weight_scheme == "oob":
+            P_train_train = self.training_proximity(return_dense=False)
+
+            leaves = self.forest_.get_leaf_matrix(np.asarray(X))
+            Q_test = build_Q_matrix(
+                self.cache_,
+                weight_scheme=self.weight_scheme,
+                leaves=leaves,
+                is_training=False,
             )
-            P_test_train = self.transform(X, return_dense=False)
-            n_query = P_test_train.shape[0]
-            P_test_test = sparse.csr_matrix((n_query, n_query), dtype=np.float32)
+            P_test_train = Q_test.dot(self.cache_.W_mat.T)
+            P_test_train = normalize_oob_oos_proximity(
+                P_test_train,
+                self.cache_.oob_mask,
+            ).tocsr()
+            P_test_test = Q_test.dot(Q_test.T).astype(np.float32, copy=False)
+            P_test_test *= np.float32(1.0 / self.cache_.n_trees)
+
             P_joint = sparse.bmat(
                 [
                     [P_train_train, P_test_train.T],

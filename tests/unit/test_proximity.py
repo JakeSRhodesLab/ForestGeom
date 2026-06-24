@@ -6,23 +6,18 @@ from sklearn.exceptions import NotFittedError
 from forestgeom import ForestProximity
 
 from tests.fixtures.constants import (
-    ALL_SUPPORTED_FACTORIZABLE_CASES,
+    JOINT_GAP_CASES,
+    JOINT_OOB_CASES,
+    JOINT_SYMMETRIC_CASES,
     RF_ET_FORESTS_AND_DATA,
     RF_ET_WEIGHT_SCHEMES,
     RTE_FORESTS_AND_DATA,
 )
 
 
-JOINT_SYMMETRIC_CASES = [
-    case
-    for case in ALL_SUPPORTED_FACTORIZABLE_CASES
-    if case[2] != "gap"
-]
-
-
-def _assert_sparse_allclose(actual, expected):
+def _assert_sparse_allclose(actual, expected, **kwargs):
     assert actual.shape == expected.shape
-    np.testing.assert_allclose(actual.toarray(), expected.toarray())
+    np.testing.assert_allclose(actual.toarray(), expected.toarray(), **kwargs)
 
 
 @pytest.mark.parametrize("weight_scheme", ["uniform", "kerf"])
@@ -119,8 +114,23 @@ def test_joint_proximity_symmetric_schemes_match_stacked_query_maps(
     _assert_sparse_allclose(P_joint, expected)
 
 
-@pytest.mark.parametrize("forest_fixture,data_fixture", RF_ET_FORESTS_AND_DATA)
-def test_gap_joint_proximity_uses_transform_block_and_zero_test_test_block(
+@pytest.mark.parametrize("forest_fixture,data_fixture", JOINT_GAP_CASES)
+def test_joint_proximity_rejects_gap_weight_scheme(
+    request,
+    forest_fixture,
+    data_fixture,
+):
+    X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
+    forest = request.getfixturevalue(forest_fixture)
+
+    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+
+    with pytest.raises(ValueError, match="GAP is directional"):
+        enc.joint_proximity(X_test)
+
+
+@pytest.mark.parametrize("forest_fixture,data_fixture", JOINT_OOB_CASES)
+def test_oob_joint_proximity_blocks_are_normalized(
     request,
     forest_fixture,
     data_fixture,
@@ -129,96 +139,55 @@ def test_gap_joint_proximity_uses_transform_block_and_zero_test_test_block(
     forest = request.getfixturevalue(forest_fixture)
     n_train = X_train.shape[0]
 
-    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+    enc = ForestProximity(forest=forest, weight_scheme="oob").fit(X_train, y_train)
 
     P_joint = enc.joint_proximity(X_test, return_dense=False)
     P_train_train = enc.training_proximity(return_dense=False)
     P_test_train = enc.transform(X_test, return_dense=False)
+    test_leaves = enc.forest_.get_leaf_matrix(np.asarray(X_test))
+    expected_test_test = (
+        (test_leaves[:, None, :] == test_leaves[None, :, :]).sum(axis=2)
+        / enc.cache_.n_trees
+    ).astype(np.float32)
+    expected_test_test = sparse.csr_matrix(expected_test_test)
 
     assert sparse.isspmatrix_csr(P_joint)
     assert P_joint.shape == (
         X_train.shape[0] + X_test.shape[0],
         X_train.shape[0] + X_test.shape[0],
     )
+    np.testing.assert_allclose(
+        P_joint.toarray(),
+        P_joint.T.toarray(),
+        rtol=1e-6,
+        atol=1e-8,
+    )
     _assert_sparse_allclose(P_joint[:n_train, :n_train], P_train_train)
     _assert_sparse_allclose(P_joint[n_train:, :n_train], P_test_train)
     _assert_sparse_allclose(P_joint[:n_train, n_train:], P_test_train.T)
-
-    P_test_test = P_joint[n_train:, n_train:]
-    assert P_test_test.shape == (X_test.shape[0], X_test.shape[0])
-    assert P_test_test.nnz == 0
-
-
-@pytest.mark.parametrize("forest_fixture,data_fixture", RF_ET_FORESTS_AND_DATA)
-def test_gap_joint_proximity_force_symmetric_returns_symmetric_matrix(
-    request,
-    forest_fixture,
-    data_fixture,
-):
-    X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
-    forest = request.getfixturevalue(forest_fixture)
-
-    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
-
-    P_joint = enc.joint_proximity(
-        X_test,
-        force_symmetric=True,
-        return_dense=True,
+    _assert_sparse_allclose(
+        P_joint[n_train:, n_train:],
+        expected_test_test,
+        rtol=1e-6,
+        atol=1e-8,
     )
 
-    np.testing.assert_allclose(P_joint, P_joint.T, rtol=1e-6, atol=1e-8)
 
-
-@pytest.mark.parametrize("forest_fixture,data_fixture", RF_ET_FORESTS_AND_DATA)
-def test_gap_joint_proximity_adjust_diagonal_changes_only_training_block(
-    request,
-    forest_fixture,
-    data_fixture,
-):
-    X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
-    forest = request.getfixturevalue(forest_fixture)
-    n_train = X_train.shape[0]
-
-    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
-
-    P_joint = enc.joint_proximity(
-        X_test,
-        adjust_diagonal=True,
-        return_dense=False,
-    )
-    P_train_train = enc.training_proximity(
-        adjust_diagonal=True,
-        return_dense=False,
-    )
-    P_test_train = enc.transform(X_test, return_dense=False)
-
-    _assert_sparse_allclose(P_joint[:n_train, :n_train], P_train_train)
-    _assert_sparse_allclose(P_joint[n_train:, :n_train], P_test_train)
-    _assert_sparse_allclose(P_joint[:n_train, n_train:], P_test_train.T)
-    assert P_joint[n_train:, n_train:].nnz == 0
-
-
-def test_joint_proximity_dense_output_matches_sparse_output(request):
+@pytest.mark.parametrize("weight_scheme", ["uniform", "oob"])
+def test_joint_proximity_dense_output_matches_sparse_output(request, weight_scheme):
     X_train, X_test, y_train, _ = request.getfixturevalue("classification_data")
     forest = request.getfixturevalue("rf_classifier")
 
-    enc = ForestProximity(forest=forest, weight_scheme="uniform").fit(X_train, y_train)
+    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(
+        X_train,
+        y_train,
+    )
 
     P_sparse = enc.joint_proximity(X_test, return_dense=False)
     P_dense = enc.joint_proximity(X_test, return_dense=True)
 
     assert isinstance(P_dense, np.ndarray)
     np.testing.assert_allclose(P_dense, P_sparse.toarray())
-
-
-def test_joint_proximity_rejects_oob_weight_scheme(request):
-    X_train, X_test, y_train, _ = request.getfixturevalue("classification_data")
-    forest = request.getfixturevalue("rf_classifier")
-
-    enc = ForestProximity(forest=forest, weight_scheme="oob").fit(X_train, y_train)
-
-    with pytest.raises(ValueError, match="test-test OOB proximity"):
-        enc.joint_proximity(X_test)
 
 
 def test_joint_proximity_requires_fitted_estimator(request):
