@@ -12,7 +12,6 @@ import pandas as pd
 import pyarrow.parquet as pq
 from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import StratifiedShuffleSplit
 
 # ---------------------------------------------------------------------
 # Make local packages importable
@@ -48,15 +47,15 @@ DATASET_ABLATION_DATASET_NAMES = [
 
     "epsilon",
     "airlines",
-    "celegans",
+    # "celegans",
     "covertype",
     # "nsl_kdd+",
     "pathmnist_28",
     "pbmc",
-    "sign_mnist",
+    # "sign_mnist",
     "tissuemnist_28",
     "tv_news_combined",
-    "zilionis",
+    # "zilionis",
 
     "higgs",
     "susy",
