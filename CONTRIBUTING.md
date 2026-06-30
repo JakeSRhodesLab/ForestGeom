@@ -89,7 +89,15 @@ Recommended release steps:
 
 1. Bump `__version__` in `src/forestgeom/version.py`.
 2. Build and test locally.
-3. Create the release tag that matches the version:
+3. Commit and push the version bump:
+
+```bash
+git add src/forestgeom/version.py
+git commit -m "Bump version to 0.0.4"
+git push origin main
+```
+
+4. Create the release tag on the pushed commit:
 
 ```bash
 git tag -a test-v0.0.4 -m "Release v0.0.4 to TestPyPI"
@@ -100,7 +108,7 @@ git tag -a v0.0.4 -m "Release v0.0.4"
 git push origin v0.0.4
 ```
 
-4. Approve the deploy in GitHub if your environment requires review.
+5. Approve the deploy in GitHub if your environment requires review.
 
 The workflow will then build the package, publish to the correct index, and
 attach the release artifacts to GitHub.
