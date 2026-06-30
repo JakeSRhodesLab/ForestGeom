@@ -1,7 +1,7 @@
 # ForestGeom 🌳
 
 [![license: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-40cdbc)](LICENSE)
-[![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-40cdbc)](pyproject.toml)
+[![python versions](https://img.shields.io/pypi/pyversions/forestgeom?color=40cdbc)](pyproject.toml)
 [![pkg: uv](https://img.shields.io/badge/pkg-uv-40cdbc)](https://docs.astral.sh/uv/)
 [![PyPI: forestgeom](https://img.shields.io/badge/PyPI-forestgeom-40cdbc)](https://pypi.org/project/forestgeom/)
 [![tests](https://github.com/JakeSRhodesLab/ForestGeom/actions/workflows/test.yml/badge.svg)](https://github.com/JakeSRhodesLab/ForestGeom/actions/workflows/test.yml)
@@ -219,16 +219,25 @@ schemes:
 
 Supported base forest classes include:
 
-- `sklearn.ensemble.RandomForestClassifier`
-- `sklearn.ensemble.RandomForestRegressor`
-- `sklearn.ensemble.ExtraTreesClassifier`
-- `sklearn.ensemble.ExtraTreesRegressor`
-- `sklearn.ensemble.RandomTreesEmbedding`
-- `sklearn.ensemble.GradientBoostingClassifier`
-- `sklearn.ensemble.GradientBoostingRegressor`
-- `lightgbm.LGBMClassifier` and `lightgbm.LGBMRegressor` with
-  `forestgeom[boosted]`
-- `xgboost.XGBClassifier` and `xgboost.XGBRegressor` with `forestgeom[boosted]`
+scikit-learn:
+
+- `RandomForestClassifier`
+- `RandomForestRegressor`
+- `ExtraTreesClassifier`
+- `ExtraTreesRegressor`
+- `RandomTreesEmbedding`
+- `GradientBoostingClassifier`
+- `GradientBoostingRegressor`
+
+XGBoost, with `forestgeom[boosted]`:
+
+- `XGBClassifier`
+- `XGBRegressor`
+
+LightGBM, with `forestgeom[boosted]`:
+
+- `LGBMClassifier`
+- `LGBMRegressor`
 
 Supported leaf-weighting schemes include:
 
