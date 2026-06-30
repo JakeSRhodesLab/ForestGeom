@@ -79,15 +79,15 @@ Release tag conventions:
 - `test-v<version>` publishes to TestPyPI and creates a GitHub prerelease.
 - `v<version>` publishes to PyPI and creates a normal GitHub release.
 
-The workflow checks that the pushed tag matches `project.version` in
-`pyproject.toml` before publishing.
+The workflow checks that the pushed tag matches `__version__` in
+`src/forestgeom/version.py` before publishing.
 
 GitHub environment protection is enabled for both `testpypi` and `pypi`, so
 selected approved maintainers must review the deploy before publication.
 
 Recommended release steps:
 
-1. Bump `project.version` in `pyproject.toml`.
+1. Bump `__version__` in `src/forestgeom/version.py`.
 2. Build and test locally.
 3. Create the release tag that matches the version:
 
