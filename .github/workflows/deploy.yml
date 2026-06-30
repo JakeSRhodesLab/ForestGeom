@@ -27,10 +27,15 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
-      - name: Verify tag matches pyproject.toml version
+      - name: Verify tag matches package version
         run: |
-          VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          VERSION=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/forestgeom/version.py)
           TAG="${GITHUB_REF_NAME}"
+
+          if [ -z "${VERSION}" ]; then
+            echo "Could not read __version__ from src/forestgeom/version.py."
+            exit 1
+          fi
 
           if [[ "${TAG}" == test-v* ]]; then
             EXPECTED_TAG="test-v${VERSION}"
@@ -39,7 +44,7 @@ jobs:
           fi
 
           if [ "${TAG}" != "${EXPECTED_TAG}" ]; then
-            echo "Tag ${TAG} does not match pyproject.toml version ${VERSION}."
+            echo "Tag ${TAG} does not match package version ${VERSION}."
             echo "Expected tag: ${EXPECTED_TAG}"
             exit 1
           fi

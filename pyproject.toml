@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "forestgeom"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Sparse geometry and proximity tools for tree ensemble models"
 readme = "README.md"
 requires-python = ">=3.10, <3.15"
@@ -61,6 +61,9 @@ all = ["lightgbm>=4.3","xgboost>=2.0","matplotlib","seaborn","umap-learn","phate
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/forestgeom"]
+
+[tool.hatch.version]
+path = "src/forestgeom/version.py"
 
 [tool.hatch.build]
 exclude = [
