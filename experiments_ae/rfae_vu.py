@@ -1,3 +1,5 @@
+"""Reconstruction Forest Autoencoder implementation from Vu's method."""
+
 import numpy as np
 import pandas as pd
 from scipy import sparse
