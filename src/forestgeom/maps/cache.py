@@ -19,8 +19,13 @@ class ForestCache:
     # Core leaf structure
     # ------------------------------------------------------------------
     leaf_matrix: Optional[np.ndarray] = None
+    # For each tree: sorted sklearn terminal-node IDs.
+    leaf_ids_per_tree: Optional[tuple[np.ndarray, ...]] = None
+    # Number of leaves in each tree.
+    n_leaves_per_tree: Optional[np.ndarray] = None
+    # Starting column of each tree's compact leaf block.
     leaf_offsets: Optional[np.ndarray] = None
-    total_unique_nodes: Optional[int] = None
+    n_leaves: Optional[int] = None
     diag_offset: Optional[int] = None
 
     # ------------------------------------------------------------------

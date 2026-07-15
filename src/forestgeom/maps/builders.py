@@ -4,28 +4,47 @@ from scipy import sparse
 from .cache import ForestCache
 
 
-def to_global_leaves(leaf_mat, leaf_offsets):
+def encode_leaf_indices(leaf_mat, leaf_ids_per_tree, leaf_offsets):
     """
-    Offset local leaf/node ids to global feature ids.
+    Encode estimator leaf-node IDs as compact per-tree feature indices.
 
     Parameters
     ----------
     leaf_mat : ndarray of shape (N, T)
-        Local node ids returned by apply().
+        Leaf-node IDs returned by the fitted forest.
+    leaf_ids_per_tree : tuple of ndarrays
+        Sorted leaf-node IDs for each fitted tree.
     leaf_offsets : ndarray of shape (T,)
-        Cumulative per-tree offsets.
+        Starting feature column of each tree's leaf block.
 
     Returns
     -------
     ndarray of shape (N, T)
-        Global node ids.
+        Compact feature columns in ``[0, sum(n_leaves_per_tree))``.
     """
-    return leaf_mat + leaf_offsets
+    leaf_mat = np.asarray(leaf_mat)
+    if leaf_mat.ndim != 2 or leaf_mat.shape[1] != len(leaf_ids_per_tree):
+        raise ValueError("leaf_mat must have one column per fitted tree.")
+
+    encoded = np.empty(leaf_mat.shape, dtype=np.int64)
+    for tree_idx, known_leaf_ids in enumerate(leaf_ids_per_tree):
+        raw_leaf_ids = leaf_mat[:, tree_idx]
+        local_indices = np.searchsorted(known_leaf_ids, raw_leaf_ids)
+        valid = local_indices < known_leaf_ids.size
+        matched = np.zeros(raw_leaf_ids.shape, dtype=bool)
+        matched[valid] = known_leaf_ids[local_indices[valid]] == raw_leaf_ids[valid]
+        if not np.all(matched):
+            unknown = np.unique(raw_leaf_ids[~matched])
+            raise ValueError(
+                f"Tree {tree_idx} returned unknown leaf-node IDs: {unknown.tolist()}."
+            )
+        encoded[:, tree_idx] = leaf_offsets[tree_idx] + local_indices
+
+    return encoded
 
 
 def initialize_cache(
     leaf_matrix,
-    n_nodes_per_tree,
     n_samples,
 ):
     """
@@ -33,7 +52,7 @@ def initialize_cache(
     a leaf matrix.
 
     This includes:
-    - global leaf indexing
+    - compact, contiguous per-tree leaf indexing
     - flattened sample-tree incidences
     - flattened tree ids used by tree-specific quantities
     """
@@ -42,14 +61,29 @@ def initialize_cache(
     cache.n_samples = int(n_samples)
     cache.n_trees = int(leaf_matrix.shape[1])
 
-    cache.leaf_offsets = np.concatenate(([0], np.cumsum(n_nodes_per_tree)[:-1])).astype(np.int64)
-    cache.total_unique_nodes = int(np.sum(n_nodes_per_tree))
-    cache.diag_offset = cache.total_unique_nodes
+    cache.leaf_ids_per_tree = tuple(
+        np.unique(cache.leaf_matrix[:, tree_idx])
+        for tree_idx in range(cache.n_trees)
+    )
+    cache.n_leaves_per_tree = np.fromiter(
+        (leaf_ids.size for leaf_ids in cache.leaf_ids_per_tree),
+        dtype=np.int64,
+        count=cache.n_trees,
+    )
+    cache.leaf_offsets = np.concatenate(
+        ([0], np.cumsum(cache.n_leaves_per_tree)[:-1])
+    ).astype(np.int64)
+    cache.n_leaves = int(np.sum(cache.n_leaves_per_tree))
+    cache.diag_offset = cache.n_leaves
 
-    global_leaves = to_global_leaves(cache.leaf_matrix, cache.leaf_offsets)
+    compact_leaves = encode_leaf_indices(
+        cache.leaf_matrix,
+        cache.leaf_ids_per_tree,
+        cache.leaf_offsets,
+    )
 
     cache.flat_rows = np.repeat(np.arange(cache.n_samples), cache.n_trees)
-    cache.flat_cols = global_leaves.flatten()
+    cache.flat_cols = compact_leaves.flatten()
 
     # Cached tree ids for flattened sample-tree arrays
     cache.flat_tree_ids = np.tile(np.arange(cache.n_trees, dtype=np.int64), cache.n_samples)
@@ -81,7 +115,7 @@ def attach_inv_sqrt_leaf_mass(cache):
     """
     leaf_mass = np.bincount(
         cache.flat_cols,
-        minlength=cache.total_unique_nodes,
+        minlength=cache.n_leaves,
     ).astype(np.float32)
 
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -104,7 +138,7 @@ def attach_inv_inbag_leaf_mass(cache):
     inbag_leaf_mass = np.bincount(
         cache.flat_cols,
         weights=c_flat,
-        minlength=cache.total_unique_nodes,
+        minlength=cache.n_leaves,
     ).astype(np.float32)
 
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -116,7 +150,7 @@ def attach_inv_inbag_leaf_mass(cache):
 
 def build_W_matrix(cache, weight_scheme):
     """
-    Builds the raw Weight Matrix W (N_ref x N_total_nodes).
+    Builds the raw Weight Matrix W (N_ref x N_leaves).
 
     This matrix handles the 'j' term (target/reference) in the kernel
     definitions, restricted to the true leaf coordinates only.
@@ -139,7 +173,7 @@ def build_W_matrix(cache, weight_scheme):
     flat_rows = cache.flat_rows
     flat_cols = cache.flat_cols
 
-    total_cols = cache.total_unique_nodes
+    total_cols = cache.n_leaves
 
     # ---------------------------------------------------------
     # ORIGINAL PROXIMITY
@@ -236,7 +270,7 @@ def build_Q_matrix(
     is_training=True,
 ):
     """
-    Builds the raw Query Matrix Q (N_query x N_total_nodes).
+    Builds the raw Query Matrix Q (N_query x N_leaves).
 
     This matrix handles the 'i' term and the summation scope S_i,
     restricted to the true leaf coordinates only.
@@ -260,12 +294,16 @@ def build_Q_matrix(
         leaves = cache.leaf_matrix
 
     N, T = leaves.shape
-    global_leaves = to_global_leaves(leaves, cache.leaf_offsets)
+    compact_leaves = encode_leaf_indices(
+        leaves,
+        cache.leaf_ids_per_tree,
+        cache.leaf_offsets,
+    )
 
     flat_rows = np.repeat(np.arange(N), T)
-    flat_cols = global_leaves.flatten()
+    flat_cols = compact_leaves.flatten()
 
-    total_cols = cache.total_unique_nodes
+    total_cols = cache.n_leaves
 
     # ---------------------------------------------------------
     # ORIGINAL PROXIMITY
