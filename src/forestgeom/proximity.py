@@ -213,11 +213,9 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         X = self.X_fit_
 
         leaf_matrix = self.forest_.get_leaf_matrix(X)
-        n_nodes_per_tree = self.forest_.get_n_nodes_per_tree()
 
         self.cache_ = initialize_cache(
             leaf_matrix=leaf_matrix,
-            n_nodes_per_tree=n_nodes_per_tree,
             n_samples=X.shape[0],
         )
 

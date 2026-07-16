@@ -84,6 +84,43 @@ def test_leaf_maps_have_consistent_shapes(request, forest_fixture, data_fixture,
     "forest_fixture,data_fixture,weight_scheme",
     ALL_SUPPORTED_FACTORIZABLE_CASES,
 )
+def test_leaf_maps_use_compact_per_tree_leaf_columns(
+    request,
+    forest_fixture,
+    data_fixture,
+    weight_scheme,
+):
+    X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
+    forest = request.getfixturevalue(forest_fixture)
+
+    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    cache = enc.cache_
+
+    expected_leaf_ids = tuple(
+        np.unique(cache.leaf_matrix[:, tree_idx])
+        for tree_idx in range(cache.n_trees)
+    )
+    expected_counts = np.asarray([leaf_ids.size for leaf_ids in expected_leaf_ids])
+    expected_offsets = np.concatenate(([0], np.cumsum(expected_counts)[:-1]))
+
+    assert cache.n_leaves == int(expected_counts.sum())
+    np.testing.assert_array_equal(cache.n_leaves_per_tree, expected_counts)
+    np.testing.assert_array_equal(cache.leaf_offsets, expected_offsets)
+    assert cache.flat_cols.min() == 0
+    assert cache.flat_cols.max() == cache.n_leaves - 1
+
+    Q_train = enc.query_map(return_dense=False)
+    W = enc.reference_map(return_dense=False)
+    Q_test = enc.query_map(X_test, return_dense=False)
+    assert Q_train.shape[1] == cache.n_leaves
+    assert W.shape[1] == cache.n_leaves
+    assert Q_test.shape[1] == cache.n_leaves
+
+
+@pytest.mark.parametrize(
+    "forest_fixture,data_fixture,weight_scheme",
+    ALL_SUPPORTED_FACTORIZABLE_CASES,
+)
 def test_leaf_maps_have_at_most_one_nonzero_per_tree_per_row(
     request,
     forest_fixture,
