@@ -2,7 +2,7 @@ import pytest
 from sklearn.base import clone
 from sklearn.metrics import accuracy_score, mean_squared_error
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 
 from tests.fixtures.constants import RF_ET_WEIGHT_SCHEMES
 from tests.prediction_helpers import (
@@ -25,7 +25,7 @@ def test_gap_is_closest_to_base_classifier_error(request, forest_fixture, data_f
 
     scheme_errors = {}
     for scheme in RF_ET_WEIGHT_SCHEMES:
-        proximity_model = ForestProximity(forest=clone(forest), weight_scheme=scheme)
+        proximity_model = Proximity(forest=clone(forest), weight_scheme=scheme)
         proximity_model.fit(X_train, y_train)
         P = proximity_model.transform(X_test)
         if scheme not in {"gap", "kerf"}:
@@ -49,7 +49,7 @@ def test_gap_is_closest_to_base_regressor_mse(request, forest_fixture, data_fixt
 
     scheme_mses = {}
     for scheme in RF_ET_WEIGHT_SCHEMES:
-        proximity_model = ForestProximity(forest=clone(forest), weight_scheme=scheme)
+        proximity_model = Proximity(forest=clone(forest), weight_scheme=scheme)
         proximity_model.fit(X_train, y_train)
         P = proximity_model.transform(X_test)
         if scheme not in {"gap", "kerf"}:

@@ -3,7 +3,7 @@ import pytest
 from scipy import sparse
 from sklearn.exceptions import NotFittedError
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 
 from tests.fixtures.constants import (
     JOINT_GAP_CASES,
@@ -28,7 +28,7 @@ def test_random_trees_embedding_supports_unsupervised_proximities(
     X_train, X_test, _, _ = request.getfixturevalue("classification_data")
     forest = request.getfixturevalue("random_trees_embedding")
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train)
 
     K_train = enc.training_proximity(return_dense=True)
     K_test = enc.transform(X_test, return_dense=True)
@@ -44,11 +44,11 @@ def test_random_trees_embedding_fit_with_y_matches_fit_without_y(request):
     X_train, X_test, y_train, _ = request.getfixturevalue("classification_data")
     forest = request.getfixturevalue("random_trees_embedding")
 
-    enc_without_y = ForestProximity(
+    enc_without_y = Proximity(
         forest=forest,
         weight_scheme="uniform",
     ).fit(X_train)
-    enc_with_y = ForestProximity(
+    enc_with_y = Proximity(
         forest=forest,
         weight_scheme="uniform",
     ).fit(X_train, y_train)
@@ -79,7 +79,7 @@ def test_random_trees_embedding_rejects_bootstrap_weight_schemes(
     X_train, _, _, _ = request.getfixturevalue("classification_data")
     forest = request.getfixturevalue("random_trees_embedding")
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme)
 
     with pytest.raises(ValueError, match="requires bootstrap=True"):
         enc.fit(X_train)
@@ -98,7 +98,7 @@ def test_joint_proximity_symmetric_schemes_match_stacked_query_maps(
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
 
     P_joint = enc.joint_proximity(X_test, return_dense=False)
     Q_train = enc.query_map(return_dense=False)
@@ -123,7 +123,7 @@ def test_joint_proximity_rejects_gap_weight_scheme(
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
 
     with pytest.raises(ValueError, match="GAP is directional"):
         enc.joint_proximity(X_test)
@@ -139,7 +139,7 @@ def test_oob_joint_proximity_blocks_are_normalized(
     forest = request.getfixturevalue(forest_fixture)
     n_train = X_train.shape[0]
 
-    enc = ForestProximity(forest=forest, weight_scheme="oob").fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme="oob").fit(X_train, y_train)
 
     P_joint = enc.joint_proximity(X_test, return_dense=False)
     P_train_train = enc.training_proximity(return_dense=False)
@@ -178,7 +178,7 @@ def test_joint_proximity_dense_output_matches_sparse_output(request, weight_sche
     X_train, X_test, y_train, _ = request.getfixturevalue("classification_data")
     forest = request.getfixturevalue("rf_classifier")
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(
         X_train,
         y_train,
     )
@@ -194,7 +194,7 @@ def test_joint_proximity_requires_fitted_estimator(request):
     X_train, X_test, y_train, _ = request.getfixturevalue("classification_data")
     forest = request.getfixturevalue("rf_classifier")
 
-    enc = ForestProximity(forest=forest, weight_scheme="uniform")
+    enc = Proximity(forest=forest, weight_scheme="uniform")
 
     with pytest.raises(NotFittedError):
         enc.joint_proximity(X_test)
@@ -205,7 +205,7 @@ def test_gap_train_and_test_rows_sum_to_one_exactly(request, forest_fixture, dat
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
 
     K_train = enc.training_proximity(return_dense=False)
     K_test = enc.transform(X_test, return_dense=False)
@@ -229,7 +229,7 @@ def test_kerf_train_kernel_is_doubly_stochastic_and_test_rows_sum_to_one(
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme="kerf").fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme="kerf").fit(X_train, y_train)
 
     K_train = enc.training_proximity(return_dense=False)
     K_test = enc.transform(X_test, return_dense=False)
@@ -253,7 +253,7 @@ def test_training_kernel_is_symmetric(request, forest_fixture, data_fixture, wei
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
 
     K = enc.training_proximity(return_dense=True)
 
@@ -266,7 +266,7 @@ def test_gap_force_symmetric_kernel_is_symmetric(request, forest_fixture, data_f
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
 
     K = enc.training_proximity(force_symmetric=True, return_dense=True)
 
@@ -283,7 +283,7 @@ def test_adjust_diagonal_matches_expected_gap_training_diagonal(
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme="gap").fit(X_train, y_train)
 
     K = enc.training_proximity(adjust_diagonal=True, return_dense=True)
     diag = np.diag(K)
@@ -324,7 +324,7 @@ def test_gap_oob_require_bootstrap_true(request, est_class, data_fixture, weight
     }
 
     est = cls_map[est_class](n_estimators=10, bootstrap=False, random_state=0, n_jobs=1)
-    enc = ForestProximity(forest=est, weight_scheme=weight_scheme)
+    enc = Proximity(forest=est, weight_scheme=weight_scheme)
 
     with pytest.raises(ValueError):
         enc.fit(X_train, y_train)

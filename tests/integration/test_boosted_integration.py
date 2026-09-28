@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 
 from tests.fixtures.constants import BOOSTED_FORESTS_AND_DATA
 
@@ -18,7 +18,7 @@ if BOOSTED_FORESTS_AND_DATA:
         X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
         forest = request.getfixturevalue(forest_fixture)
 
-        enc = ForestProximity(forest=forest, weight_scheme="boosted").fit(X_train, y_train)
+        enc = Proximity(forest=forest, weight_scheme="boosted").fit(X_train, y_train)
 
         K_fast = enc.training_proximity(return_dense=True)
         leaves = enc.forest_.get_leaf_matrix(X_train)

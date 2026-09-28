@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.base import clone
 import pytest
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 from tests.prediction_helpers import (
     predict_classifier_from_proximity,
     predict_regression_from_proximity,
@@ -18,7 +18,7 @@ def test_gap_matches_base_classifier_predictions(request, forest_fixture, data_f
     base_forest = clone(forest)
     base_forest.fit(X_train, y_train)
 
-    proximity_model = ForestProximity(forest=clone(forest), weight_scheme="gap")
+    proximity_model = Proximity(forest=clone(forest), weight_scheme="gap")
     proximity_model.fit(X_train, y_train)
     P = proximity_model.transform(X_test)
     proximity_preds, proba = predict_classifier_from_proximity(
@@ -39,7 +39,7 @@ def test_gap_matches_base_regressor_predictions(request, forest_fixture, data_fi
     base_forest = clone(forest)
     base_forest.fit(X_train, y_train)
 
-    proximity_model = ForestProximity(forest=clone(forest), weight_scheme="gap")
+    proximity_model = Proximity(forest=clone(forest), weight_scheme="gap")
     proximity_model.fit(X_train, y_train)
     P = proximity_model.transform(X_test)
     proximity_preds = predict_regression_from_proximity(P, y_train)

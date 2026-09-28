@@ -1,4 +1,4 @@
-from .proximity import ForestProximity
+from .proximity import Proximity
 from .version import __version__
 
-__all__ = ["ForestProximity", "__version__"]
+__all__ = ["Proximity", "__version__"]

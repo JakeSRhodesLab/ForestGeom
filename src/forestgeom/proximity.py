@@ -25,11 +25,11 @@ from .maps import (
 )
 
 
-class ForestProximity(TransformerMixin, BaseEstimator):
+class Proximity(TransformerMixin, BaseEstimator):
     """
     Sparse forest proximity estimator.
 
-    ForestProximity computes forest-induced pairwise proximities while exposing
+    Proximity computes forest-induced pairwise proximities while exposing
     efficient sparse, forest-based vector representations whenever available.
 
     Most proximity schemes admit a sparse factored representation of the form
@@ -149,7 +149,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         check_is_fitted(self, attributes=["forest_", "cache_"])
         if self.cache_ is None:
             raise NotFittedError(
-                "This ForestProximity instance is not fitted yet. "
+                "This Proximity instance is not fitted yet. "
                 "Call `fit(...)` first."
             )
 
@@ -267,7 +267,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self : ForestProximity
+        self : Proximity
             Fitted estimator with the updated weighting scheme.
 
         Notes
@@ -313,7 +313,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             Note
             ----
             If a ``sample_weight`` keyword is provided it will be persisted on
-            the fitted ``ForestProximity`` instance as the attribute
+            the fitted ``Proximity`` instance as the attribute
             ``sample_weight_`` and used to reconstruct bootstrap statistics
             (OOB mask and in-bag counts) when building the cache. This
             ensures that weighted sampling performed during fit is reflected
@@ -321,7 +321,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self : ForestProximity
+        self : Proximity
             Fitted estimator.
 
         Notes
