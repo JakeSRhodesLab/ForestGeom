@@ -123,13 +123,13 @@ class Proximity(TransformerMixin, BaseEstimator):
     Leaf-Incidence Kernels.
     """
 
-    def __init__(self, forest=None, weight_scheme="uniform"):
+    def __init__(self, forest, weight_scheme="uniform"):
         """
         Create a forest proximity estimator around a tree ensemble.
 
         Parameters
         ----------
-        forest : BaseEstimator, default=None
+        forest : BaseEstimator
             The tree ensemble to wrap, such as a random forest or boosted tree model.
             If unfitted, it is cloned and fitted inside :meth:`fit`. If already
             fitted, it is reused in-place and not refit.
@@ -174,9 +174,6 @@ class Proximity(TransformerMixin, BaseEstimator):
         """
         X = np.asarray(X)
         y = None if y is None else np.asarray(y).ravel()
-
-        if self.forest is None:
-            raise ValueError("`forest` must be provided.")
 
         adapter = make_adapter(
             self.forest,
