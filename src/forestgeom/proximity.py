@@ -489,8 +489,6 @@ class Proximity(TransformerMixin, BaseEstimator):
         self,
         X,
         return_dense=False,
-        force_symmetric=False,
-        adjust_diagonal=False,
     ):
         """
         Return a fitted train-plus-query proximity matrix.
@@ -501,12 +499,6 @@ class Proximity(TransformerMixin, BaseEstimator):
             Query samples to append after the fitted training samples.
         return_dense : bool, default=False
             Return a dense array instead of a sparse matrix.
-        force_symmetric : bool, default=False
-            Ignored for symmetric schemes. ``weight_scheme="gap"`` is not
-            supported by this method because GAP is directional.
-        adjust_diagonal : bool, default=False
-            Ignored for symmetric schemes. ``weight_scheme="gap"`` is not
-            supported by this method because GAP is directional.
 
         Returns
         -------
