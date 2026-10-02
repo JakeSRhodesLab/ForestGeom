@@ -148,7 +148,7 @@ pip install -e ".[test]"
 
 # Architecture
 
-ForestGeom is organized around one central object, `ForestProximity`. The class
+ForestGeom is organized around one central object, `Proximity`. The class
 wraps a fitted or unfitted tree ensemble and turns it into a reusable geometry object built
 from sparse leaf-incidence maps.
 
@@ -157,7 +157,7 @@ from sparse leaf-incidence maps.
                                     |
                                     v
    X_train, y_train --> +------------------------+
-   fit(...)             |    ForestProximity     |
+   fit(...)             |    Proximity     |
                         +------------------------+
                                     |
                                     v
@@ -200,6 +200,24 @@ bootstrap masks, in-bag counts, and boosted tree weights. The map-building layer
 then uses those quantities to construct the sparse geometry for the selected
 weighting scheme (`uniform`, `kerf`, `oob`, `gap`, or `boosted`).
 
+Custom forests can be passed directly to `Proximity(forest, weight_scheme=...)`.
+They use the same method names and array conventions as the built-in adapters:
+
+| Method | Output | Required for |
+| --- | --- | --- |
+| `get_leaf_matrix(X)` | Integer array `(n_samples, n_trees)` of per-tree leaf IDs | All schemes |
+| `get_oob_mask(X_train=None, sample_weight=None)` | Array `(n_train, n_trees)`, 1 for OOB, 0 otherwise | `oob`, `gap` |
+| `get_in_bag_counts(X_train=None, sample_weight=None)` | Array `(n_train, n_trees)` of bootstrap multiplicities | `gap` |
+| `get_tree_weights(X_ref)` | Nonnegative float array `(n_trees,)`, summing to one | `boosted` |
+
+The tree columns must have the same order in every output. Supported schemes are
+detected automatically from the implemented methods listed above; no scheme
+declaration is needed. Follow sklearn's estimator conventions (`fit`, cloning via
+`get_params`, and fitted attributes ending in `_` or `__sklearn_is_fitted__`).
+Unfitted forests are cloned before fitting; fitted forests are reused. Existing
+`EnsembleAdapter` instances can also be passed directly. Proximity outputs retain
+the usual sparse CSR float32 format, or dense arrays with `return_dense=True`.
+
 The important distinction is:
 
 - Symmetric schemes such as `uniform`, `kerf`, and `boosted` use the same
@@ -212,7 +230,7 @@ The important distinction is:
 
 # Usage
 
-`ForestProximity` wraps a tree ensemble estimator. During `fit(...)`, unfitted
+`Proximity` wraps a tree ensemble estimator. During `fit(...)`, unfitted
 estimators are cloned and fitted, while already fitted estimators are reused
 without refitting. It supports a unified set of forest backends and weighting
 schemes:
@@ -298,7 +316,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 
 X, y = load_breast_cancer(return_X_y=True)
 X_train, X_test, y_train, y_test = train_test_split(
@@ -316,7 +334,7 @@ forest = RandomForestClassifier(
   n_jobs=-1,
 )
 
-geometry = ForestProximity(forest=forest, weight_scheme="uniform").fit(X_train, y_train)
+geometry = Proximity(forest=forest, weight_scheme="uniform").fit(X_train, y_train)
 
 # Query/reference maps define the symmetric geometry.
 Q_train = geometry.query_map()
@@ -339,7 +357,7 @@ print(f"base-forest accuracy: {accuracy_score(y_test, pred):.3f}")
 from xgboost import XGBClassifier
 
 forest = XGBClassifier(n_estimators=200, random_state=0)
-boosted_geometry = ForestProximity(forest=forest, weight_scheme="boosted")
+boosted_geometry = Proximity(forest=forest, weight_scheme="boosted")
 K_train = boosted_geometry.fit_transform(X_train, y_train)
 K_test = boosted_geometry.transform(X_test)
 ```

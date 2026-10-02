@@ -21,7 +21,7 @@ from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 from forestgeom.adapters import make_adapter
 
 
@@ -119,7 +119,7 @@ def build_forest(seed: int, n_estimators: int, max_depth: int | None, n_jobs: in
 
 
 def build_proximity_model(forest, scheme: str, X_train, y_train):
-    fp = ForestProximity(forest=forest, weight_scheme=scheme)
+    fp = Proximity(forest=forest, weight_scheme=scheme)
     fp.forest_ = make_adapter(forest, weight_scheme=scheme)
     fp.X_fit_ = X_train
     fp.y_ = y_train

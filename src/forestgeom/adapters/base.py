@@ -1,29 +1,20 @@
 from sklearn.base import clone
 
+
 class EnsembleAdapter:
     """
-    Base adapter interface used to abstract away ensemble-specific internals.
+    Wrap an estimator and delegate methods not implemented by the adapter.
 
-    Each adapter wraps a fitted estimator instance and exposes a
-    unified interface for:
-    - retrieving leaf indices
-    - retrieving per-tree node counts
-    - retrieving OOB masks / in-bag counts when available
-    - retrieving tree-specific weights when relevant (e.g. GBT)
+    Adapters or custom forests provide get_leaf_matrix(X), returning integer
+    leaf IDs of shape (N, T). Optional methods enable additional schemes:
+    get_oob_mask(X_train=None, sample_weight=None) returns a (N_train, T)
+    mask with 1 for OOB samples; get_in_bag_counts with the same signature
+    returns bootstrap multiplicities; get_tree_weights(X_ref) returns
+    nonnegative weights of shape (T,) summing to one.
 
-    Each adapter wraps an estimator instance and exposes a unified interface
-    for leaf-based forest kernel construction.
-    
-
-    Notes
-    -----
-    The adapter does not own the estimator. It simply delegates to it.
+    get_n_nodes_per_tree() may also return per-tree node counts, but is not
+    required for proximity construction. All outputs use consistent tree order.
     """
-
-
-
-    supported_weight_schemes = {"uniform", "kerf"}
-
     def __init__(self, estimator, weight_scheme=None):
         self.estimator = estimator
 
@@ -32,13 +23,24 @@ class EnsembleAdapter:
 
     def validate_weight_scheme(self, weight_scheme):
         """
-        Validate whether this adapter supports the requested weight scheme.
+        Validate a scheme against implemented adapter or forest methods.
         """
-        if weight_scheme not in self.supported_weight_schemes:
+        requirements = {
+            "uniform": ("get_leaf_matrix",),
+            "kerf": ("get_leaf_matrix",),
+            "oob": ("get_leaf_matrix", "get_oob_mask"),
+            "gap": ("get_leaf_matrix", "get_oob_mask", "get_in_bag_counts"),
+            "boosted": ("get_leaf_matrix", "get_tree_weights"),
+        }
+        supported = [
+            scheme for scheme, methods in requirements.items()
+            if all(callable(getattr(self, method, None)) for method in methods)
+        ]
+        if weight_scheme not in supported:
             raise ValueError(
                 f"{type(self).__name__} does not support "
                 f"weight_scheme='{weight_scheme}'. "
-                f"Supported schemes are {sorted(self.supported_weight_schemes)}."
+                f"Supported schemes are {sorted(supported)}."
             )
 
         return self
@@ -53,40 +55,6 @@ class EnsembleAdapter:
         self.estimator = clone(self.estimator)
         self.estimator.fit(X, y, **fit_kwargs)
         return self
-    
-    def get_leaf_matrix(self, X):
-        """
-        Return matrix of leaf ids of shape (N, T).
-        """
-        raise NotImplementedError
 
-    def get_n_nodes_per_tree(self):
-        """
-        Return number of nodes per tree, used to offset local node ids into
-        global ids.
-        """
-        raise NotImplementedError
-
-    def get_oob_mask(self, X_train=None, sample_weight=None):
-        """
-        Return OOB mask matrix of shape (N_train, T), where entry (i,t)=1 if
-        sample i is OOB for tree t.
-        """
-        raise NotImplementedError
-
-    def get_in_bag_counts(self, X_train=None, sample_weight=None):
-        """
-        Return in-bag multiplicity matrix of shape (N_train, T), where entry
-        (i,t) is the number of times sample i was drawn for tree t.
-        """
-        raise NotImplementedError
-
-    def get_tree_weights(self, X_ref):
-        """
-        Return per-tree weights when the proximity requires them.
-        Only relevant for some ensembles such as Gradient Boosting.
-        """
-        raise NotImplementedError
-    
     def __getattr__(self, name):
         return getattr(self.estimator, name)

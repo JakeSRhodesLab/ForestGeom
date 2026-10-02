@@ -28,8 +28,6 @@ class RFETAdapter(EnsembleAdapter):
     Adapter for sklearn RandomForest / ExtraTrees / RandomTreesEmbedding ensembles.
     """
 
-    supported_weight_schemes = {"uniform", "kerf", "oob", "gap"}
-
     def validate_weight_scheme(self, weight_scheme):
         super().validate_weight_scheme(weight_scheme)
 

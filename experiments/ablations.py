@@ -23,7 +23,7 @@ if str(SRC_ROOT) not in sys.path:
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 from experiments.runtime_utils import (
     kernel_percent_nnz,
     log_progress,
@@ -312,7 +312,7 @@ def instantiate_fk(
     kernel_method: str,
     seed: int,
     model_kwargs: dict[str, object],
-) -> ForestProximity:
+) -> Proximity:
     kwargs = dict(model_kwargs)
 
     if model_type in {"rf", "et"}:
@@ -335,11 +335,11 @@ def instantiate_fk(
         raise ValueError(f"Unsupported model_type for this script: {model_type!r}")
 
     weight_scheme = "uniform" if kernel_method == "original" else kernel_method
-    return ForestProximity(forest=forest, weight_scheme=weight_scheme)
+    return Proximity(forest=forest, weight_scheme=weight_scheme)
 
 
 def run_fk_full_pipeline(
-    fk: ForestProximity,
+    fk: Proximity,
     X_sub,
     y_sub,
     X_test,
@@ -453,7 +453,7 @@ if str(src_root) not in sys.path:
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 from dataset import dataprep
 from experiments.runtime_utils import (
     MemoryMonitor,
@@ -626,7 +626,7 @@ def instantiate_fk(model_type, kernel_method, seed, model_kwargs):
     else:
         raise ValueError(f"Unsupported model_type for this script: {model_type!r}")
     weight_scheme = "uniform" if kernel_method == "original" else kernel_method
-    return ForestProximity(forest=forest, weight_scheme=weight_scheme)
+    return Proximity(forest=forest, weight_scheme=weight_scheme)
 
 paths = payload["dataset_paths"]
 X_sub, X_test, y_sub, y_test = load_subset_dataset_pair(

@@ -25,11 +25,11 @@ from .maps import (
 )
 
 
-class ForestProximity(TransformerMixin, BaseEstimator):
+class Proximity(TransformerMixin, BaseEstimator):
     """
     Sparse forest proximity estimator.
 
-    ForestProximity computes forest-induced pairwise proximities while exposing
+    Proximity computes forest-induced pairwise proximities while exposing
     efficient sparse, forest-based vector representations whenever available.
 
     Most proximity schemes admit a sparse factored representation of the form
@@ -123,16 +123,19 @@ class ForestProximity(TransformerMixin, BaseEstimator):
     Leaf-Incidence Kernels.
     """
 
-    def __init__(self, forest=None, weight_scheme="uniform"):
+    def __init__(self, forest, weight_scheme="uniform"):
         """
         Create a forest proximity estimator around a tree ensemble.
 
         Parameters
         ----------
-        forest : BaseEstimator, default=None
+        forest : BaseEstimator
             The tree ensemble to wrap, such as a random forest or boosted tree model.
             If unfitted, it is cloned and fitted inside :meth:`fit`. If already
             fitted, it is reused in-place and not refit.
+            Custom forests implement the ``EnsembleAdapter`` method interface
+            and follow sklearn's cloning and fitted-state conventions. Existing
+            ``EnsembleAdapter`` instances may also be passed directly.
 
         weight_scheme : str, default="uniform"
             Leaf-weighting scheme used to build the query and reference maps.
@@ -149,7 +152,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         check_is_fitted(self, attributes=["forest_", "cache_"])
         if self.cache_ is None:
             raise NotFittedError(
-                "This ForestProximity instance is not fitted yet. "
+                "This Proximity instance is not fitted yet. "
                 "Call `fit(...)` first."
             )
 
@@ -175,16 +178,13 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         X = np.asarray(X)
         y = None if y is None else np.asarray(y).ravel()
 
-        if self.forest is None:
-            raise ValueError("`forest` must be provided.")
-
         adapter = make_adapter(
             self.forest,
             weight_scheme=self.weight_scheme,
         )
 
         try:
-            check_is_fitted(self.forest)
+            check_is_fitted(adapter.estimator)
         except NotFittedError:
             adapter.fit(X, y, **fit_kwargs)
 
@@ -267,7 +267,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self : ForestProximity
+        self : Proximity
             Fitted estimator with the updated weighting scheme.
 
         Notes
@@ -313,7 +313,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             Note
             ----
             If a ``sample_weight`` keyword is provided it will be persisted on
-            the fitted ``ForestProximity`` instance as the attribute
+            the fitted ``Proximity`` instance as the attribute
             ``sample_weight_`` and used to reconstruct bootstrap statistics
             (OOB mask and in-bag counts) when building the cache. This
             ensures that weighted sampling performed during fit is reflected
@@ -321,7 +321,7 @@ class ForestProximity(TransformerMixin, BaseEstimator):
 
         Returns
         -------
-        self : ForestProximity
+        self : Proximity
             Fitted estimator.
 
         Notes
@@ -492,8 +492,6 @@ class ForestProximity(TransformerMixin, BaseEstimator):
         self,
         X,
         return_dense=False,
-        force_symmetric=False,
-        adjust_diagonal=False,
     ):
         """
         Return a fitted train-plus-query proximity matrix.
@@ -504,12 +502,6 @@ class ForestProximity(TransformerMixin, BaseEstimator):
             Query samples to append after the fitted training samples.
         return_dense : bool, default=False
             Return a dense array instead of a sparse matrix.
-        force_symmetric : bool, default=False
-            Ignored for symmetric schemes. ``weight_scheme="gap"`` is not
-            supported by this method because GAP is directional.
-        adjust_diagonal : bool, default=False
-            Ignored for symmetric schemes. ``weight_scheme="gap"`` is not
-            supported by this method because GAP is directional.
 
         Returns
         -------

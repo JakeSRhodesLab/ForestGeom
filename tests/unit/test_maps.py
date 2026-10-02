@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from forestgeom import ForestProximity
+from forestgeom import Proximity
 
 from tests.fixtures.constants import (
     ALL_SUPPORTED_FACTORIZABLE_CASES,
@@ -29,10 +29,10 @@ def test_fit_transform_matches_fit_then_training_proximity(
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    fit_transform_encoder = ForestProximity(forest=forest, weight_scheme=weight_scheme)
+    fit_transform_encoder = Proximity(forest=forest, weight_scheme=weight_scheme)
     K_fit_transform = fit_transform_encoder.fit_transform(X_train, y_train, return_dense=False)
 
-    fit_encoder = ForestProximity(forest=forest, weight_scheme=weight_scheme)
+    fit_encoder = Proximity(forest=forest, weight_scheme=weight_scheme)
     fit_encoder.fit(X_train, y_train)
     K_training = fit_encoder.training_proximity(return_dense=False)
 
@@ -49,10 +49,10 @@ def test_fit_transform_matches_fit_then_transform_for_inductive_classification_s
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    fit_transform_encoder = ForestProximity(forest=forest, weight_scheme=weight_scheme)
+    fit_transform_encoder = Proximity(forest=forest, weight_scheme=weight_scheme)
     Q_fit_transform = fit_transform_encoder.fit_transform(X_train, y_train, return_dense=False)
 
-    fit_encoder = ForestProximity(forest=forest, weight_scheme=weight_scheme)
+    fit_encoder = Proximity(forest=forest, weight_scheme=weight_scheme)
     fit_encoder.fit(X_train, y_train)
     Q_transform = fit_encoder.transform(X_train, return_dense=False)
 
@@ -67,7 +67,7 @@ def test_leaf_maps_have_consistent_shapes(request, forest_fixture, data_fixture,
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
 
     Q_train = enc.query_map(return_dense=False)
     W = enc.reference_map(return_dense=False)
@@ -93,7 +93,7 @@ def test_leaf_maps_use_compact_per_tree_leaf_columns(
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
     cache = enc.cache_
 
     expected_leaf_ids = tuple(
@@ -130,7 +130,7 @@ def test_leaf_maps_have_at_most_one_nonzero_per_tree_per_row(
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
 
     Q_train = enc.query_map(return_dense=False)
     W = enc.reference_map(return_dense=False)
@@ -151,7 +151,7 @@ def test_proximity_matches_leaf_factorization(request, forest_fixture, data_fixt
     X_train, _, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
 
     K = enc.training_proximity(return_dense=True)
     Q = enc.query_map(return_dense=False)
@@ -173,7 +173,7 @@ def test_proximity_extend_matches_leaf_factorization(
     X_train, X_test, y_train, _ = request.getfixturevalue(data_fixture)
     forest = request.getfixturevalue(forest_fixture)
 
-    enc = ForestProximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
+    enc = Proximity(forest=forest, weight_scheme=weight_scheme).fit(X_train, y_train)
 
     K_test = enc.transform(X_test, return_dense=True)
     Q_test = enc.query_map(X_test, return_dense=False)

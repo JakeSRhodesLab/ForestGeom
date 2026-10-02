@@ -14,8 +14,6 @@ class XGBoostAdapter(EnsembleAdapter):
     collisions and yield denser forest kernels.
     """
 
-    supported_weight_schemes = {"uniform", "kerf", "boosted"}
-
     def _get_booster(self):
         if not hasattr(self.estimator, "get_booster"):
             raise ValueError("XGBoost estimator must be fitted before using XGBoostAdapter.")

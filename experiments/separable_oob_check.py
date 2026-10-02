@@ -1,4 +1,4 @@
-# This file does not match the new ForestProximity API, and is not currently used. It may be deleted or repurposed in the future.
+# This file does not match the new Proximity API, and is not currently used. It may be deleted or repurposed in the future.
 
 
 # # prox_equivalence_grid_oob_count_ratio.py
