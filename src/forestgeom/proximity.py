@@ -133,6 +133,9 @@ class Proximity(TransformerMixin, BaseEstimator):
             The tree ensemble to wrap, such as a random forest or boosted tree model.
             If unfitted, it is cloned and fitted inside :meth:`fit`. If already
             fitted, it is reused in-place and not refit.
+            Custom forests implement the ``EnsembleAdapter`` method interface
+            and follow sklearn's cloning and fitted-state conventions. Existing
+            ``EnsembleAdapter`` instances may also be passed directly.
 
         weight_scheme : str, default="uniform"
             Leaf-weighting scheme used to build the query and reference maps.
@@ -181,7 +184,7 @@ class Proximity(TransformerMixin, BaseEstimator):
         )
 
         try:
-            check_is_fitted(self.forest)
+            check_is_fitted(adapter.estimator)
         except NotFittedError:
             adapter.fit(X, y, **fit_kwargs)
 

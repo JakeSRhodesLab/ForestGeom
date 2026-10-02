@@ -12,8 +12,6 @@ class LightGBMAdapter(EnsembleAdapter):
     the number of shared-leaf collisions and yield sparser forest kernels.
     """
 
-    supported_weight_schemes = {"uniform", "kerf", "boosted"}
-
     def _get_booster(self):
         if not hasattr(self.estimator, "booster_"):
             raise ValueError(

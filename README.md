@@ -200,6 +200,24 @@ bootstrap masks, in-bag counts, and boosted tree weights. The map-building layer
 then uses those quantities to construct the sparse geometry for the selected
 weighting scheme (`uniform`, `kerf`, `oob`, `gap`, or `boosted`).
 
+Custom forests can be passed directly to `Proximity(forest, weight_scheme=...)`.
+They use the same method names and array conventions as the built-in adapters:
+
+| Method | Output | Required for |
+| --- | --- | --- |
+| `get_leaf_matrix(X)` | Integer array `(n_samples, n_trees)` of per-tree leaf IDs | All schemes |
+| `get_oob_mask(X_train=None, sample_weight=None)` | Array `(n_train, n_trees)`, 1 for OOB, 0 otherwise | `oob`, `gap` |
+| `get_in_bag_counts(X_train=None, sample_weight=None)` | Array `(n_train, n_trees)` of bootstrap multiplicities | `gap` |
+| `get_tree_weights(X_ref)` | Nonnegative float array `(n_trees,)`, summing to one | `boosted` |
+
+The tree columns must have the same order in every output. Supported schemes are
+detected automatically from the implemented methods listed above; no scheme
+declaration is needed. Follow sklearn's estimator conventions (`fit`, cloning via
+`get_params`, and fitted attributes ending in `_` or `__sklearn_is_fitted__`).
+Unfitted forests are cloned before fitting; fitted forests are reused. Existing
+`EnsembleAdapter` instances can also be passed directly. Proximity outputs retain
+the usual sparse CSR float32 format, or dense arrays with `return_dense=True`.
+
 The important distinction is:
 
 - Symmetric schemes such as `uniform`, `kerf`, and `boosted` use the same

@@ -10,6 +10,7 @@ from sklearn.ensemble import (
 
 from .rf_et_rte import RFETAdapter
 from .gbt import GBTAdapter
+from .base import EnsembleAdapter
 
 
 try:
@@ -48,12 +49,18 @@ _GBT_CLASSES = (
 
 def make_adapter(estimator, weight_scheme=None):
     """
-    Return the correct ensemble adapter for a supported estimator.
+    Return an adapter for a built-in estimator or a custom forest.
+
+    Custom forests expose the same get_* methods as EnsembleAdapter. Supported
+    schemes are inferred from the methods implemented by the adapter or forest.
 
     If weight_scheme is provided, validate that the selected adapter supports
     this forest / weight_scheme combination.
     """
-    if isinstance(estimator, _RF_ET_RTE_CLASSES):
+    if isinstance(estimator, EnsembleAdapter):
+        adapter = estimator
+
+    elif isinstance(estimator, _RF_ET_RTE_CLASSES):
         adapter = RFETAdapter(estimator)
 
     elif isinstance(estimator, _GBT_CLASSES):
@@ -64,6 +71,9 @@ def make_adapter(estimator, weight_scheme=None):
 
     elif _XGB_CLASSES and isinstance(estimator, _XGB_CLASSES):
         adapter = XGBoostAdapter(estimator)
+
+    elif callable(getattr(estimator, "get_leaf_matrix", None)):
+        adapter = EnsembleAdapter(estimator)
 
     else:
         supported = [
@@ -82,7 +92,7 @@ def make_adapter(estimator, weight_scheme=None):
         raise TypeError(
             "Unsupported forest estimator. Expected one of: "
             + ", ".join(supported)
-            + "."
+            + ", or a custom forest exposing get_leaf_matrix(X)."
         )
 
     if weight_scheme is not None:
