@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -28,7 +28,7 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/66/54/eb9bfc647b19f2009dd5c7f5ec51c4e6ca831725f1aea7a993034f483147/contourpy-1.3.2.tar.gz", hash = "sha256:b6945942715a034c671b7fc54f9588126b0b8bf23db2696e3ca8328f3ff0ab54", size = 13466130, upload-time = "2025-04-15T17:47:53.79Z" }
 wheels = [
@@ -103,7 +103,7 @@ resolution-markers = [
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/58/01/1253e6698a07380cd31a736d248a3f2a50a7c88779a1813da27503cadc2a/contourpy-1.3.3.tar.gz", hash = "sha256:083e12155b210502d0bca491432bb04d56dc3432f95a979b429f2848c3dbe880", size = 13466174, upload-time = "2025-07-26T12:03:12.549Z" }
 wheels = [
@@ -324,7 +324,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -407,6 +407,7 @@ all = [
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.0.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "phate" },
+    { name = "proximity-forests" },
     { name = "pyarrow" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -426,6 +427,9 @@ experiments = [
     { name = "pyarrow" },
     { name = "seaborn" },
     { name = "umap-learn" },
+]
+proximity-forests = [
+    { name = "proximity-forests" },
 ]
 test = [
     { name = "pytest" },
@@ -451,6 +455,8 @@ requires-dist = [
     { name = "phate", marker = "extra == 'all'" },
     { name = "phate", marker = "extra == 'experiments'" },
     { name = "phate", marker = "extra == 'viz'" },
+    { name = "proximity-forests", marker = "extra == 'all'", specifier = ">=0.1.0b2" },
+    { name = "proximity-forests", marker = "extra == 'proximity-forests'", specifier = ">=0.1.0b2" },
     { name = "pyarrow", marker = "extra == 'all'" },
     { name = "pyarrow", marker = "extra == 'experiments'" },
     { name = "pytest", marker = "extra == 'all'" },
@@ -468,7 +474,7 @@ requires-dist = [
     { name = "xgboost", marker = "extra == 'all'", specifier = ">=2.0" },
     { name = "xgboost", marker = "extra == 'boosted'", specifier = ">=2.0" },
 ]
-provides-extras = ["all", "boosted", "experiments", "test", "viz"]
+provides-extras = ["all", "boosted", "experiments", "proximity-forests", "test", "viz"]
 
 [[package]]
 name = "future"
@@ -983,10 +989,10 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "python-dateutil", marker = "python_full_version < '3.11'" },
-    { name = "pytz", marker = "python_full_version < '3.11'" },
-    { name = "tzdata", marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "python-dateutil" },
+    { name = "pytz" },
+    { name = "tzdata" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/33/01/d40b85317f86cf08d853a4f495195c73815fdf205eef3993821720274518/pandas-2.3.3.tar.gz", hash = "sha256:e05e1af93b977f7eafa636d043f9f94c7ee3ac81af99c13508215942e64c993b", size = 4495223, upload-time = "2025-09-29T23:34:51.853Z" }
 wheels = [
@@ -1052,9 +1058,9 @@ resolution-markers = [
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "python-dateutil", marker = "python_full_version >= '3.11'" },
-    { name = "tzdata", marker = "(python_full_version >= '3.11' and sys_platform == 'emscripten') or (python_full_version >= '3.11' and sys_platform == 'win32')" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "python-dateutil" },
+    { name = "tzdata", marker = "sys_platform == 'emscripten' or sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f8/87/4341c6252d1c47b08768c3d25ac487362bf403f0313ddae4a2a26c9b1b4c/pandas-3.0.3.tar.gz", hash = "sha256:696a4a00a2a2a35d4e5deb3fc946641b96c944f02230e4f76137fe35d806c4fc", size = 4651414, upload-time = "2026-05-11T18:54:29.21Z" }
 wheels = [
@@ -1237,6 +1243,38 @@ wheels = [
 ]
 
 [[package]]
+name = "proximity-forests"
+version = "0.1.0b2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/f7/088039dbdf129e3b4e848b4b38243986b815ffafe5e58a077c7665a2945d/proximity_forests-0.1.0b2.tar.gz", hash = "sha256:0f288935209be03ea801cfbd4b8c295b27899472443277c7e4efc8d5d84cfd31", size = 172532, upload-time = "2026-11-21T21:04:48.766Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/fa/82e2f4936c249404d7cf13f0fc038483595d1071b810a6b4016cfa37c36c/proximity_forests-0.1.0b2-cp310-cp310-macosx_10_12_x86_64.whl", hash = "sha256:7e774dd32c96d4b3bbda258c8e377d4e073d409c371a7b20e3c23676e7daeefa", size = 882129, upload-time = "2026-11-21T21:04:21.507Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/41/37bc9df9992ec2e8121184085662147cce9d64fe7e57e0ed0eb65c968a75/proximity_forests-0.1.0b2-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:7b658a320a05918d8f54924a165542a20b9107456ad48f8c68d2332892860bc6", size = 823649, upload-time = "2026-11-21T21:04:23.299Z" },
+    { url = "https://files.pythonhosted.org/packages/08/15/66be1b99c013bcd7a01bf70ac88dc18bf840caf4fb25361d7089225a6dd7/proximity_forests-0.1.0b2-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:cb1a737c13a5ab3d96417dedbf182cc424d6cbb456bfce9fba94f9b708745bbf", size = 853627, upload-time = "2026-11-21T21:04:24.539Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/f5/0c6148081120cbc470660697d25433d0079bbf09c47b4007190ea6a3a394/proximity_forests-0.1.0b2-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:796ebee15d5d1891fcd646989647a1ae307cb02e5c8b1d606eaf53139e8168e2", size = 930512, upload-time = "2026-11-21T21:04:26.316Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/f9/a3f04eccd09726069db7bdf85e1deb8a96e4e5b5c12e0556475dfa6f84a7/proximity_forests-0.1.0b2-cp310-cp310-win_amd64.whl", hash = "sha256:75cec10f97d658c525c19b85333b66c1ba33df6e2744c4fdbb22c002d18ea399", size = 858321, upload-time = "2026-11-21T21:04:27.778Z" },
+    { url = "https://files.pythonhosted.org/packages/23/a5/4fa857c61464e177a6a043e4a56dd1f2de0cbdb0042207ed003ce0c42d39/proximity_forests-0.1.0b2-cp311-cp311-macosx_10_12_x86_64.whl", hash = "sha256:a40ac0689c89ef99d91c91df95ed7e1b7bd750f6f56e7ef3e19533a005466f6f", size = 881782, upload-time = "2026-11-21T21:04:29.284Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/fc/25e01975449ab81d3e03b0e8243adf615c9d84044087c0a2638d43a8e1c1/proximity_forests-0.1.0b2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:ae94b2cab2a48d059feb839d1fb373fb01db2702a325706e17a8fa3bc0b9cafc", size = 823510, upload-time = "2026-11-21T21:04:30.527Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/d4/27c45842bef5953de1d121ff236b16efcf31139e15d616edcacd65a3dfec/proximity_forests-0.1.0b2-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:e3f5dc992c4a292324327e66626ab2bba4becb38822276d18e6f4e692c182ea7", size = 853593, upload-time = "2026-11-21T21:04:31.735Z" },
+    { url = "https://files.pythonhosted.org/packages/ec/c8/bcc4caee3427e6e8f8f9ee90d1714d96fdf382e9731f4247047a731108a8/proximity_forests-0.1.0b2-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:c396dff49d9cb4af845e67099193aaa532a8a29bfe04aff9744a939383fcf7f9", size = 930227, upload-time = "2026-11-21T21:04:32.899Z" },
+    { url = "https://files.pythonhosted.org/packages/0e/9d/9ae0862097a742e277712413f274a8620cf6f09d15423543531264ceac43/proximity_forests-0.1.0b2-cp311-cp311-win_amd64.whl", hash = "sha256:60e5a62cd1cb160a05aee10da3b14127a9b328961e087186ca7b1365794457a9", size = 857900, upload-time = "2026-11-21T21:04:34.085Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/81/079c8af4197626c1901236a50694b013b63ea78e428ce3770a5dc65a2e33/proximity_forests-0.1.0b2-cp312-cp312-macosx_10_12_x86_64.whl", hash = "sha256:ac6911e893638de7ac9d8c6c859e09dacb0784803dc7279ce4d9b0a81ac7609a", size = 876682, upload-time = "2026-11-21T21:04:35.475Z" },
+    { url = "https://files.pythonhosted.org/packages/15/a9/92791224848a81732155b985329729e773f65caad16c3f96ae47755a3f3a/proximity_forests-0.1.0b2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:e63c3f2b4cc80d8870b20dbd151d7a2c8aa613b4eb6d1e3efebc21512a509f38", size = 807617, upload-time = "2026-11-21T21:04:36.865Z" },
+    { url = "https://files.pythonhosted.org/packages/77/ac/c2e577c8190b8da3a5c891f4b91afdacb13a990fc58c199aa06c798bc0d2/proximity_forests-0.1.0b2-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:17d931ad34041de5a68874e0fd0f9c6588f0c4fdfd4f8a8eaaa478a7eb52be6f", size = 842296, upload-time = "2026-11-21T21:04:38.243Z" },
+    { url = "https://files.pythonhosted.org/packages/65/bb/dc24ce20eee04dc8ab5c01a7bfc025e46631c4b58d82eb0a4aee6cf3d6c3/proximity_forests-0.1.0b2-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:042e69ca34faf489659ddd1e2c77331bdff5e62ef16b389dc51f34433dc70a70", size = 921365, upload-time = "2026-11-21T21:04:39.736Z" },
+    { url = "https://files.pythonhosted.org/packages/99/57/0b066e3ca5e812794463d63d8fa1a2e945e8cdd9bef8e5dd9f0f80d367c1/proximity_forests-0.1.0b2-cp312-cp312-win_amd64.whl", hash = "sha256:25e776d89817f5b546de7eb731549bf4d35a51d70f409bb149a0c06b50c8ed3e", size = 852300, upload-time = "2026-11-21T21:04:41.056Z" },
+    { url = "https://files.pythonhosted.org/packages/40/a9/8605066b14a282207e0439866226a37c1024a1023ed685bb658f60265cb6/proximity_forests-0.1.0b2-cp313-cp313-macosx_10_12_x86_64.whl", hash = "sha256:c98309233c7cf187083a198103e232139eacd8567bdb767f76d78da0e84ad708", size = 876858, upload-time = "2026-11-21T21:04:42.353Z" },
+    { url = "https://files.pythonhosted.org/packages/02/32/bb6598c7b55f1181687e6f2654d74df308311f3d92133cfafd330d37acd6/proximity_forests-0.1.0b2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8c61795e53e3356c08274c87a7306485c9adc059cd93c5a4a3bcba9a52c89272", size = 807680, upload-time = "2026-11-21T21:04:43.625Z" },
+    { url = "https://files.pythonhosted.org/packages/7b/57/f56feff59c21850b1124ca33e18379c9bf52f20fb824c456de1aabf7ca48/proximity_forests-0.1.0b2-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:585a41799c9b468979dd855dde291206452ad822296df5139888e59018c4fc6a", size = 842466, upload-time = "2026-11-21T21:04:44.956Z" },
+    { url = "https://files.pythonhosted.org/packages/11/3e/8f26b90d9e790361302f5060fbd2fdd872cc32c6b285ebbd2ab650e93338/proximity_forests-0.1.0b2-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:ad0cb90cfe3ee1c32024a5f36ae506fd6d0450001f66a3b0a20d9b88299c52c0", size = 921514, upload-time = "2026-11-21T21:04:46.361Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/b8/c9419aec48fa2b3db3508d6438eaae406d294d3d6e40580ef858983a24e5/proximity_forests-0.1.0b2-cp313-cp313-win_amd64.whl", hash = "sha256:ac45f27a5ca19c48124cc8167150d96d2dec73593e1d9559311e69da137f3497", size = 852367, upload-time = "2026-11-21T21:04:47.606Z" },
+]
+
+[[package]]
 name = "pyarrow"
 version = "24.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1405,10 +1443,10 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "joblib", marker = "python_full_version < '3.11'" },
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "threadpoolctl", marker = "python_full_version < '3.11'" },
+    { name = "joblib" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" } },
+    { name = "threadpoolctl" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/98/c2/a7855e41c9d285dfe86dc50b250978105dce513d6e459ea66a6aeb0e1e0c/scikit_learn-1.7.2.tar.gz", hash = "sha256:20e9e49ecd130598f1ca38a1d85090e1a600147b9c02fa6f15d69cb53d968fda", size = 7193136, upload-time = "2025-09-09T08:21:29.075Z" }
 wheels = [
@@ -1457,10 +1495,10 @@ resolution-markers = [
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "joblib", marker = "python_full_version >= '3.11'" },
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "threadpoolctl", marker = "python_full_version >= '3.11'" },
+    { name = "joblib" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" } },
+    { name = "threadpoolctl" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0e/d4/40988bf3b8e34feec1d0e6a051446b1f66225f8529b9309becaeef62b6c4/scikit_learn-1.8.0.tar.gz", hash = "sha256:9bccbb3b40e3de10351f8f5068e105d0f4083b1a65fa07b6634fbc401a6287fd", size = 7335585, upload-time = "2025-12-10T07:08:53.618Z" }
 wheels = [
@@ -1510,7 +1548,7 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0f/37/6964b830433e654ec7485e45a00fc9a27cf868d622838f6b6d9c5ec0d532/scipy-1.15.3.tar.gz", hash = "sha256:eae3cf522bc7df64b42cad3925c876e1b0b6c35c1337c93e12c0f366f55b0eaf", size = 59419214, upload-time = "2025-05-08T16:13:05.955Z" }
 wheels = [
@@ -1574,7 +1612,7 @@ resolution-markers = [
     "python_full_version >= '3.11' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [

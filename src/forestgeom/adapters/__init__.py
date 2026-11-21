@@ -33,6 +33,22 @@ except ImportError:
     _XGB_CLASSES = ()
 
 
+try:
+    from proximity_forests import (
+        ProximityForestClassifier,
+        ProximityForestRegressor,
+        ProximityIsolationForest,
+    )
+    from .proximity_forests import ProximityForestsAdapter
+    _PROXIMITY_FOREST_CLASSES = (
+        ProximityForestClassifier,
+        ProximityForestRegressor,
+        ProximityIsolationForest,
+    )
+except ImportError:
+    ProximityForestsAdapter = None
+    _PROXIMITY_FOREST_CLASSES = ()
+
 _RF_ET_RTE_CLASSES = (
     RandomForestClassifier,
     RandomForestRegressor,
@@ -65,6 +81,8 @@ def make_adapter(estimator, weight_scheme=None):
 
     elif isinstance(estimator, _GBT_CLASSES):
         adapter = GBTAdapter(estimator)
+    elif _PROXIMITY_FOREST_CLASSES and isinstance(estimator, _PROXIMITY_FOREST_CLASSES):
+        adapter = ProximityForestsAdapter(estimator)
 
     elif _LGBM_CLASSES and isinstance(estimator, _LGBM_CLASSES):
         adapter = LightGBMAdapter(estimator)
@@ -88,6 +106,10 @@ def make_adapter(estimator, weight_scheme=None):
 
         if _XGB_CLASSES:
             supported.append("XGBClassifier/Regressor")
+        if _PROXIMITY_FOREST_CLASSES:
+            supported.append(
+                "ProximityForestClassifier/Regressor/IsolationForest"
+            )
 
         raise TypeError(
             "Unsupported forest estimator. Expected one of: "
