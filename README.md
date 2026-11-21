@@ -412,3 +412,11 @@ Proximities.
   keywords={Random forests;Forestry;Geometry;Data visualization;Decision trees;Task analysis;Anomaly detection;Proximities;random forests;supervised learning},
   doi={10.1109/TPAMI.2023.3263774}}
 ```
+
+## Proximity forests
+
+Install the optional backend with `pip install "forestgeom[proximity-forests]"`.
+`ProximityForestClassifier`, `ProximityForestRegressor`, and
+`ProximityIsolationForest` support `uniform`, `kerf`, `oob`, and `gap`
+weighting. `oob` and `gap` require `sampling="bootstrap"` or
+`sampling="subsample"`; boosted weighting is not applicable.
